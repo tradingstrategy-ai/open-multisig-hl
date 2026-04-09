@@ -1,5 +1,5 @@
 import { createWalletClient, custom, type WalletClient } from 'viem'
-import { arbitrum } from 'viem/chains'
+import { arbitrumSepolia } from 'viem/chains'
 
 let address = $state<string | null>(null)
 let connected = $state(false)
@@ -18,7 +18,7 @@ function handleAccountsChanged(accounts: string[]) {
 		address = accounts[0]
 		client = createWalletClient({
 			account: address as `0x${string}`,
-			chain: arbitrum,
+			chain: arbitrumSepolia,
 			transport: custom(window.ethereum!),
 		})
 	}
@@ -43,7 +43,7 @@ async function connect() {
 		connected = true
 		client = createWalletClient({
 			account: address as `0x${string}`,
-			chain: arbitrum,
+			chain: arbitrumSepolia,
 			transport: custom(window.ethereum!),
 		})
 		window.ethereum!.on('accountsChanged', handleAccountsChanged)
