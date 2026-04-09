@@ -1,5 +1,4 @@
 import { createWalletClient, custom, type WalletClient } from 'viem'
-import { arbitrumSepolia } from 'viem/chains'
 
 let address = $state<string | null>(null)
 let connected = $state(false)
@@ -18,19 +17,9 @@ function handleAccountsChanged(accounts: string[]) {
 		address = accounts[0]
 		client = createWalletClient({
 			account: address as `0x${string}`,
-			chain: arbitrumSepolia,
 			transport: custom(window.ethereum!),
 		})
 	}
-}
-
-const REQUIRED_CHAIN_ID = 421614 // Arbitrum Sepolia — matches Hyperliquid EIP-712 domain
-
-async function switchToRequiredChain() {
-	await window.ethereum!.request({
-		method: 'wallet_switchEthereumChain',
-		params: [{ chainId: '0x66eee' }],
-	})
 }
 
 async function connect() {
@@ -48,38 +37,12 @@ async function connect() {
 			error = 'No accounts returned'
 			return
 		}
-
-		// Check current chain and switch if needed
-		const chainIdHex = (await window.ethereum!.request({ method: 'eth_chainId' })) as string
-		const currentChainId = parseInt(chainIdHex, 16)
-		if (currentChainId !== REQUIRED_CHAIN_ID) {
-			try {
-				await switchToRequiredChain()
-			} catch (switchErr: unknown) {
-				// Code 4902 = chain not added to wallet yet
-				if ((switchErr as { code?: number }).code === 4902) {
-					await window.ethereum!.request({
-						method: 'wallet_addEthereumChain',
-						params: [{
-							chainId: '0x66eee',
-							chainName: 'Arbitrum Sepolia',
-							nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-							rpcUrls: ['https://sepolia-rollup.arbitrum.io/rpc'],
-							blockExplorerUrls: ['https://sepolia.arbiscan.io'],
-						}],
-					})
-				} else {
-					error = 'Please switch your wallet to Arbitrum Sepolia (chainId 421614) to sign.'
-					return
-				}
-			}
-		}
-
 		address = accounts[0]
 		connected = true
+		// No chain set — viem won't enforce chainId matching on signTypedData.
+		// The chainId in the EIP-712 domain is Hyperliquid protocol metadata, not a network requirement.
 		client = createWalletClient({
 			account: address as `0x${string}`,
-			chain: arbitrumSepolia,
 			transport: custom(window.ethereum!),
 		})
 		window.ethereum!.on('accountsChanged', handleAccountsChanged)
