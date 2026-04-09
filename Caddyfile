@@ -1,0 +1,16 @@
+# Production Caddyfile for HL Multisig Signer
+# Serves static SPA build with fallback routing for /sign?s=...
+#
+# Usage:
+#   Local:      caddy run --config Caddyfile
+#   Tailscale:  caddy run --config Caddyfile  (bind to tailscale IP)
+#   Docker:     handled by Dockerfile
+
+:3000 {
+	root * /srv
+	file_server
+
+	# SPA fallback — serve 200.html for any route not matching a file
+	# This is critical for /sign?s=... to work
+	try_files {path} /index.html
+}
