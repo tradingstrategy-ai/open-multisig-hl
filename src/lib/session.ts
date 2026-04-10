@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths';
 import type { Session, FormValues } from './types';
 
 // Encode session to URL-safe base64 for sharing
@@ -18,11 +19,14 @@ export function decodeSession(encoded: string): Session | null {
   }
 }
 
-// Build a shareable URL from a session
+// Build a shareable URL from a session.
+// Uses resolve('/sign') so the SvelteKit base path is applied — otherwise
+// the generated link would drop the /open-multisig-hl segment on the Pages
+// deployment and the recipient would 404.
 export function buildShareUrl(session: Session): string {
   const encoded = encodeSession(session);
-  const base = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${base}/sign?s=${encoded}`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  return `${origin}${resolve('/sign')}?s=${encoded}`;
 }
 
 // Create a session from current form values

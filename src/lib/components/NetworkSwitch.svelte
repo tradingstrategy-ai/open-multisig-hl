@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { asset } from '$app/paths';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import type { Network } from '$lib/types.js';
 
@@ -12,7 +13,7 @@
 </script>
 
 <div class="inline-flex items-center gap-2">
-	<img src="/hyperliquid.svg" alt="Hyperliquid" class="h-5 w-5" />
+	<img src={asset('/hyperliquid.svg')} alt="Hyperliquid" class="h-5 w-5" />
 	<div class="flex gap-1">
 		<Button
 			variant={network === 'Mainnet' ? 'default' : 'outline'}

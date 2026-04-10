@@ -1,0 +1,78 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one in-flight Pages deployment at a time, but do NOT cancel
+# a running deploy — cancelling mid-deploy can wedge Pages state.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        env:
+          # Deploys as a GitHub Pages project site at
+          # https://tradingstrategy-ai.github.io/open-multisig-hl/
+          # so SvelteKit needs this as its base path. svelte.config.js
+          # reads it via process.env.BASE_PATH.
+          BASE_PATH: /open-multisig-hl
+        run: pnpm run build
+
+      - name: Disable Jekyll
+        # Pages' default Jekyll pipeline strips paths beginning with `_`,
+        # which would eat SvelteKit's _app/ output.
+        run: touch build/.nojekyll
+
+      - name: Create SPA 404 fallback
+        # GitHub Pages serves 404.html for unknown paths. Copy the SPA
+        # shell to that filename so client-side routes like
+        # /open-multisig-hl/sign?s=... boot the app instead of showing
+        # a bare 404.
+        run: cp build/index.html build/404.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
