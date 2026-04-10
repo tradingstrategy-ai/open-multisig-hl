@@ -5,6 +5,7 @@ This application a web user interface for Hyperliquid native multisignature wall
 # Benefits
 
 - Built for security
+- Supports popular wallets like Keystone (recommended hardware wallet), Ledger, Rabby, Metamask
 - Run locally
 - Open source
 - Free
