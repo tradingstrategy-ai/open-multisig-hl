@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { asset } from '$app/paths';
 	import { decodeSession, sessionToFormValues } from '$lib/session.js';
 	import ConnectWallet from '$lib/components/ConnectWallet.svelte';
 	import PayloadForm from '$lib/components/PayloadForm.svelte';
@@ -70,7 +71,7 @@
 	<div class="space-y-6">
 		<div class="flex items-start justify-between gap-4">
 			<div class="flex items-center gap-3">
-				<img src="/trading-strategy-logo.svg" alt="Trading Strategy" class="h-8" />
+				<img src={asset('/trading-strategy-logo.svg')} alt="Trading Strategy" class="h-8" />
 				<div>
 					<h1 class="text-2xl font-bold">Sign Multisig Transaction</h1>
 					<p class="text-muted-foreground mt-1 text-sm">
