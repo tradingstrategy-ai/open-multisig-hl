@@ -25,7 +25,9 @@ export async function signMultisig(
 	}
 	const rawSig = (await provider.request({
 		method: 'eth_signTypedData_v4',
-		params: [walletAddress, JSON.stringify(typedData)],
+		params: [walletAddress, JSON.stringify(typedData, (_key, value) =>
+			typeof value === 'bigint' ? Number(value) : value
+		)],
 	})) as `0x${string}`
 
 	const { r, s, v } = parseSignature(rawSig)
