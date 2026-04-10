@@ -28,9 +28,31 @@ export async function signMultisig(
 	const domain = normalizeBigInts(params.domain) as typeof params.domain
 	const message = normalizeBigInts(params.message) as Record<string, unknown>
 
-	// Call eth_signTypedData_v4 directly on the provider to bypass viem's
-	// chainId enforcement. Hyperliquid uses chainId 421614 in its EIP-712 domain
-	// as a protocol constant — signers should not need to switch networks.
+	// MetaMask enforces that the wallet's current chainId matches the domain's chainId
+	// before signing eth_signTypedData_v4. Switch to Arbitrum Sepolia (0x66eee = 421614)
+	// which is the chainId Hyperliquid uses in its EIP-712 domain as a protocol constant.
+	try {
+		await provider.request({
+			method: 'wallet_switchEthereumChain',
+			params: [{ chainId: '0x66eee' }],
+		})
+	} catch (switchErr: unknown) {
+		if ((switchErr as { code?: number }).code === 4902) {
+			await provider.request({
+				method: 'wallet_addEthereumChain',
+				params: [{
+					chainId: '0x66eee',
+					chainName: 'Arbitrum Sepolia',
+					nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+					rpcUrls: ['https://sepolia-rollup.arbitrum.io/rpc'],
+					blockExplorerUrls: ['https://sepolia.arbiscan.io'],
+				}],
+			})
+		} else {
+			throw new Error('Please switch your wallet to Arbitrum Sepolia (chainId 421614) to sign.')
+		}
+	}
+
 	const typedData = { domain, types: params.types, primaryType: params.primaryType, message }
 	const rawSig = (await provider.request({
 		method: 'eth_signTypedData_v4',
