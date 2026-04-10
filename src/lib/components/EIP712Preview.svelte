@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
 	import { getWallet } from '$lib/wallet.svelte.js';
 	import { buildSignTypedDataParams, getActionDef } from '$lib/eip712.js';
 	import type { FormValues } from '$lib/types.js';
@@ -47,20 +46,11 @@
 	const actionDef = $derived(getActionDef(values.actionType));
 </script>
 
-<Card>
-	<CardHeader>
-		<CardTitle class="text-sm">
-			EIP-712 Preview
-			{#if actionDef.signingMode === 'l1'}
-				<span class="text-muted-foreground font-normal"> (L1 Phantom Agent)</span>
-			{/if}
-		</CardTitle>
-	</CardHeader>
-	<CardContent>
-		{#if preview}
-			<pre class="bg-muted overflow-auto rounded-md p-3 text-xs font-mono leading-relaxed">{JSON.stringify(preview, null, 2)}</pre>
-		{:else}
-			<p class="text-muted-foreground text-sm">Fill in the form to see the EIP-712 preview.</p>
-		{/if}
-	</CardContent>
-</Card>
+{#if actionDef.signingMode === 'l1'}
+	<p class="text-muted-foreground mb-2 text-[0.65rem]">L1 Phantom Agent</p>
+{/if}
+{#if preview}
+	<pre class="bg-muted overflow-auto rounded-md p-3 font-mono leading-relaxed text-[0.6rem]">{JSON.stringify(preview, null, 2)}</pre>
+{:else}
+	<p class="text-muted-foreground text-[0.65rem]">Fill in the form to see the EIP-712 preview.</p>
+{/if}

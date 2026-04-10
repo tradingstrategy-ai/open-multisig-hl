@@ -8,8 +8,12 @@
 	import SignatureOutput from '$lib/components/SignatureOutput.svelte';
 	import { Card, CardHeader, CardTitle, CardContent } from '$lib/components/ui/card/index.js';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
+	import WrongChainAlert from '$lib/components/WrongChainAlert.svelte';
+	import BalanceBox from '$lib/components/BalanceBox.svelte';
+	import NetworkSwitch from '$lib/components/NetworkSwitch.svelte';
 	import { getWallet } from '$lib/wallet.svelte.js';
 	import { getActionDef } from '$lib/eip712.js';
+	import { HYPERCORE_SIGNING_CHAIN_ID } from '$lib/chains.js';
 	import { signMultisig } from '$lib/signing.js';
 	import { validateForm, isFormValid } from '$lib/validation.js';
 	import type { FormValues, SignatureResult } from '$lib/types.js';
@@ -32,15 +36,22 @@
 	let formErrors = $derived(
 		hasSession && actionDef ? validateForm(values, actionDef) : {}
 	);
-	let canSign = $derived(wallet.connected && hasSession && isFormValid(formErrors));
+	// See chains.ts — Hyperliquid's EIP-712 domain uses Arbitrum Sepolia as a
+	// protocol constant because Hyperliquid was built on the Arbitrum stack.
+	let requiredChainId = HYPERCORE_SIGNING_CHAIN_ID;
+	let canSign = $derived(
+		wallet.connected && hasSession && isFormValid(formErrors),
+	);
 
 	async function handleSign() {
-		if (!wallet.client || !wallet.address || !hasSession) return;
+		const provider = wallet.provider;
+		const addr = wallet.address;
+		if (!wallet.client || !addr || !provider || !hasSession) return;
 		signing = true;
 		signError = null;
 		result = null;
 		try {
-			result = await signMultisig(wallet.provider, wallet.address, values);
+			result = await signMultisig(provider, addr, values);
 		} catch (err) {
 			signError = err instanceof Error ? err.message : 'Signing failed';
 		} finally {
@@ -57,14 +68,22 @@
 	</Alert>
 {:else}
 	<div class="space-y-6">
-		<div>
-			<h1 class="text-2xl font-bold">Sign Multisig Transaction</h1>
-			<p class="text-muted-foreground mt-1 text-sm">
-				Session created by
-				<span class="font-mono">{session?.createdBy.slice(0, 10)}...</span>
-				on {new Date(session?.createdAt ?? 0).toLocaleString()}
-			</p>
+		<div class="flex items-start justify-between gap-4">
+			<div class="flex items-center gap-3">
+				<img src="/trading-strategy-logo.svg" alt="Trading Strategy" class="h-8" />
+				<div>
+					<h1 class="text-2xl font-bold">Sign Multisig Transaction</h1>
+					<p class="text-muted-foreground mt-1 text-sm">
+						Session created by
+						<span class="font-mono">{session?.createdBy.slice(0, 10)}...</span>
+						on {new Date(session?.createdAt ?? 0).toLocaleString()}
+					</p>
+				</div>
+			</div>
+			<NetworkSwitch network={values.network} onchange={() => {}} disabled />
 		</div>
+
+		<WrongChainAlert {requiredChainId} />
 
 		<Alert class="border-blue-800 bg-blue-950/50">
 			<AlertDescription class="text-blue-200">
@@ -87,10 +106,26 @@
 					<CardHeader>
 						<CardTitle class="text-sm">2. Payload (locked)</CardTitle>
 					</CardHeader>
-					<CardContent>
+					<CardContent class="space-y-4">
 						<PayloadForm bind:values bind:errors locked />
+						<SignButton disabled={!canSign} {signing} onclick={handleSign} />
+						{#if signError}
+							<div
+								class="rounded-md border border-destructive px-4 py-3 text-sm text-destructive"
+							>
+								{signError}
+							</div>
+						{/if}
+						{#if result}
+							<SignatureOutput {result} />
+						{/if}
 					</CardContent>
 				</Card>
+				<BalanceBox
+					multisigAddress={values.multisigAddress}
+					signerAddress={wallet.address ?? ''}
+					network={values.network}
+				/>
 			</div>
 			<Card>
 				<CardHeader>
@@ -101,17 +136,5 @@
 				</CardContent>
 			</Card>
 		</div>
-
-		<SignButton disabled={!canSign} {signing} onclick={handleSign} />
-		{#if signError}
-			<div
-				class="rounded-md border border-destructive px-4 py-3 text-sm text-destructive"
-			>
-				{signError}
-			</div>
-		{/if}
-		{#if result}
-			<SignatureOutput {result} />
-		{/if}
 	</div>
 {/if}

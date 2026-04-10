@@ -1,4 +1,5 @@
 import { createWalletClient, custom, type WalletClient } from 'viem'
+import { CHAINS, toHexChainId } from './chains'
 
 // EIP-6963 types
 interface EIP6963ProviderInfo {
@@ -28,6 +29,8 @@ let client = $state<WalletClient | null>(null)
 let connecting = $state(false)
 let error = $state<string | null>(null)
 let activeProvider = $state<EIP6963ProviderDetail['provider'] | null>(null)
+let chainId = $state<number | null>(null)
+let switchingChain = $state(false)
 
 function handleAccountsChanged(accounts: unknown[]) {
 	if ((accounts as string[]).length === 0) {
@@ -40,6 +43,27 @@ function handleAccountsChanged(accounts: unknown[]) {
 				transport: custom(activeProvider),
 			})
 		}
+	}
+}
+
+function handleChainChanged(...args: unknown[]) {
+	const raw = args[0]
+	if (typeof raw === 'string') {
+		const parsed = parseInt(raw, 16)
+		chainId = Number.isFinite(parsed) ? parsed : null
+	} else if (typeof raw === 'number') {
+		chainId = raw
+	}
+}
+
+async function refreshChainId() {
+	if (!activeProvider) return
+	try {
+		const hex = (await activeProvider.request({ method: 'eth_chainId' })) as string
+		const parsed = parseInt(hex, 16)
+		chainId = Number.isFinite(parsed) ? parsed : null
+	} catch {
+		chainId = null
 	}
 }
 
@@ -63,10 +87,53 @@ async function connectProvider(detail: EIP6963ProviderDetail) {
 			transport: custom(detail.provider),
 		})
 		detail.provider.on('accountsChanged', handleAccountsChanged)
+		detail.provider.on('chainChanged', handleChainChanged)
+		await refreshChainId()
 	} catch (err) {
 		error = err instanceof Error ? err.message : 'Connection failed'
 	} finally {
 		connecting = false
+	}
+}
+
+/**
+ * Ask the wallet to switch to a specific chain. If the wallet doesn't know the
+ * chain yet (EIP-3326 error 4902) and we have local metadata for it in
+ * `CHAINS`, fall back to `wallet_addEthereumChain`.
+ */
+async function switchChain(targetChainId: number): Promise<void> {
+	if (!activeProvider) {
+		throw new Error('No wallet connected')
+	}
+	switchingChain = true
+	error = null
+	try {
+		try {
+			await activeProvider.request({
+				method: 'wallet_switchEthereumChain',
+				params: [{ chainId: toHexChainId(targetChainId) }],
+			})
+		} catch (err: unknown) {
+			// 4902: chain not recognised by the wallet. Offer to add it if known.
+			const code = (err as { code?: number; data?: { originalError?: { code?: number } } })?.code
+				?? (err as { data?: { originalError?: { code?: number } } })?.data?.originalError?.code
+			if (code === 4902 && CHAINS[targetChainId]) {
+				await activeProvider.request({
+					method: 'wallet_addEthereumChain',
+					params: [CHAINS[targetChainId]],
+				})
+			} else {
+				throw err
+			}
+		}
+		// `chainChanged` will fire and update our state, but refresh defensively
+		// in case the wallet doesn't emit it.
+		await refreshChainId()
+	} catch (err) {
+		error = err instanceof Error ? err.message : 'Chain switch failed'
+		throw err
+	} finally {
+		switchingChain = false
 	}
 }
 
@@ -87,11 +154,13 @@ function connect() {
 function disconnect() {
 	if (activeProvider) {
 		activeProvider.removeListener('accountsChanged', handleAccountsChanged)
+		activeProvider.removeListener('chainChanged', handleChainChanged)
 	}
 	address = null
 	connected = false
 	client = null
 	activeProvider = null
+	chainId = null
 }
 
 // Start EIP-6963 discovery immediately (module-level, runs once)
@@ -114,11 +183,14 @@ export function getWallet() {
 		get provider() { return activeProvider },
 		get connecting() { return connecting },
 		get error() { return error },
+		get chainId() { return chainId },
+		get switchingChain() { return switchingChain },
 		get discoveredWallets() { return discoveredWallets },
 		get showPicker() { return showPicker },
 		set showPicker(v: boolean) { showPicker = v },
 		connect,
 		connectProvider,
 		disconnect,
+		switchChain,
 	}
 }

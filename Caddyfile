@@ -1,4 +1,4 @@
-# Production Caddyfile for HL Multisig Signer
+# Production Caddyfile for Open Hyperliquid Multisigner
 # Serves static SPA build with fallback routing for /sign?s=...
 #
 # Usage:
