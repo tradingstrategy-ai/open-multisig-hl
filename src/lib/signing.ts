@@ -1,4 +1,4 @@
-import { parseSignature, verifyTypedData } from 'viem'
+import { parseSignature } from 'viem'
 import { buildSignTypedDataParams, getActionDef } from './eip712'
 import type { FormValues, SignatureResult } from './types'
 
@@ -38,20 +38,6 @@ export async function signMultisig(
 	})) as `0x${string}`
 
 	const { r, s, v } = parseSignature(rawSig)
-
-	// Verify using verifyTypedData which re-encodes exactly as the wallet did
-	const valid = await verifyTypedData({
-		address: walletAddress as `0x${string}`,
-		domain,
-		types: params.types as Record<string, Array<{ name: string; type: string }>>,
-		primaryType: params.primaryType,
-		message,
-		signature: rawSig,
-	})
-
-	if (!valid) {
-		throw new Error(`Signature verification failed for ${walletAddress}`)
-	}
 
 	const actionDef = getActionDef(values.actionType)
 
