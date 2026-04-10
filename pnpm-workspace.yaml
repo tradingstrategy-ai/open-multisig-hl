@@ -1,0 +1,40 @@
+engineStrict: true
+
+# Force 1 week delay before installing new packages (in minutes)
+# so we don't get hit with compromised packasges
+# minimumReleaseAge: 10080
+
+minimumReleaseAgeExclude:
+  - "@sveltejs/adapter-node"
+  - "@sveltejs/enhanced-img"
+  - "@sveltejs/kit"
+  - "@sveltejs/vite-plugin-svelte"
+  - devalue
+  - prettier-plugin-svelte
+  - svelte
+  - svelte-check
+
+ignoredBuiltDependencies:
+  - "@datadog/native-iast-taint-tracking"
+  - "@datadog/native-metrics"
+  - "@datadog/pprof"
+
+onlyBuiltDependencies:
+  - "@datadog/native-appsec"
+  - "@reown/appkit"
+  - "@sentry/cli"
+  - bufferutil
+  - dd-trace
+  - esbuild
+  - keccak
+  - protobufjs
+  - sharp
+  - utf-8-validate
+
+overrides:
+  "@reown/appkit-wallet>zod": ^4.0.5
+  abitype>zod: ^4.0.5
+  svelte-headless-table>svelte: ^4.0.0 || ^5.0.0
+  svelte-keyed>svelte: ^5.37.1
+  svelte-render>svelte: ^5.37.1
+  svelte-subscribe>svelte: ^5.37.1

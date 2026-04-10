@@ -1,42 +1,65 @@
-# sv
+# Open Hyperliquid Multisigner
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+This application a web user interface for Hyperliquid native multisignature wallets (also known as Hypercore multisig).
 
-## Creating a project
+- Run locally
+- Open source
+- Free
+- Brutal
 
-If you're seeing this, you've probably already done this step. Congrats!
+![alt text](image.png)
 
-```sh
-# create a new project
-npx sv create my-app
+# Beta warning
+
+- Limited functionality. The software supports only certain actions, but new actions are easy to add.
+
+# Requirements
+
+- Basic understanding of running local JavaScript applications from Git
+- `pnpm`
+
+# Run
+
+To launch Open Hyperliquid Multisigner:
+
+```shell
+pnpm run dev
 ```
 
-To recreate this project with the same configuration:
+Then go to:
 
-```sh
-# recreate this project
-npx sv@0.15.0 create --template minimal --types ts --no-install .
-```
+http://localhost:5173/
 
-## Developing
+# Usage
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+1. One of the multisignature participants creates the value you need to sign
+2. They communicate them to others - you can copy-paste the UR:
+3. Others connect their wallet and verify values
+4. Everyone presses sign
 
-```sh
-npm run dev
+All signers must sign the exact same payload. Coordinate nonce values before signing. Changing any field invalidates previously collected signatures..
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+# How to create Hyperliquid native multisignature wallet
 
-## Building
+TODO
 
-To create a production version of your app:
+# Architecture
 
-```sh
-npm run build
-```
+- Uses Svelte and Viem
 
-You can preview the production build with `npm run preview`.
+# Support
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- [Join Discord for any questions](https://tradingstrategy.ai/community).
+
+# Social media
+
+- [Watch tutorials on YouTube](https://www.youtube.com/@tradingstrategyprotocol)
+- [Follow on Twitter](https://twitter.com/TradingProtocol)
+- [Follow on Telegram](https://t.me/trading_protocol)
+- [Follow on LinkedIn](https://www.linkedin.com/company/trading-strategy/)
+
+# License
+
+MIT.
+
+[Created by Trading Strategy](https://tradingstrategy.ai).

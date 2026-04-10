@@ -69,10 +69,6 @@
 		updateField(fieldName, Date.now().toString());
 	}
 
-	function setNetwork(network: 'Mainnet' | 'Testnet') {
-		values = { ...values, network };
-	}
-
 	function setBoolField(fieldName: string, val: boolean) {
 		updateField(fieldName, val.toString());
 	}
@@ -109,29 +105,11 @@
 		<p class="text-muted-foreground text-xs">{actionDef.description}</p>
 	</div>
 
-	<!-- Signing Mode Badge + Network Toggle -->
-	<div class="flex items-center justify-between">
+	<!-- Signing Mode Badge -->
+	<div>
 		<Badge variant={actionDef.signingMode === 'l1' ? 'secondary' : 'default'}>
 			{actionDef.signingMode === 'l1' ? 'L1 Phantom Agent' : 'EIP-712 Direct'}
 		</Badge>
-		<div class="flex gap-1">
-			<Button
-				variant={values.network === 'Mainnet' ? 'default' : 'outline'}
-				size="sm"
-				disabled={locked}
-				onclick={() => setNetwork('Mainnet')}
-			>
-				Mainnet
-			</Button>
-			<Button
-				variant={values.network === 'Testnet' ? 'default' : 'outline'}
-				size="sm"
-				disabled={locked}
-				onclick={() => setNetwork('Testnet')}
-			>
-				Testnet
-			</Button>
-		</div>
 	</div>
 
 	<!-- Multisig Address -->
