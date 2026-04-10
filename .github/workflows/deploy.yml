@@ -26,6 +26,9 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
+          # Must be pinned explicitly because package.json has no
+          # packageManager field. Keep in sync with local pnpm major.
+          version: 10
           run_install: false
 
       - name: Setup Node.js
