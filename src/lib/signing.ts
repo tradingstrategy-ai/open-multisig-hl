@@ -17,26 +17,37 @@ export async function signMultisig(
 	// current network chainId matches the EIP-712 domain chainId. Hyperliquid uses
 	// chainId 421614 in its domain as a protocol constant — users should be able to
 	// sign from any network without being forced to switch chains.
+	// Normalize BigInt → number so JSON.stringify works and viem recovery matches
+	function normalizeBigInts(obj: unknown): unknown {
+		if (typeof obj === 'bigint') return Number(obj)
+		if (Array.isArray(obj)) return obj.map(normalizeBigInts)
+		if (obj !== null && typeof obj === 'object') {
+			return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, normalizeBigInts(v)]))
+		}
+		return obj
+	}
+
+	const normalizedDomain = normalizeBigInts(params.domain) as typeof params.domain
+	const normalizedMessage = normalizeBigInts(params.message) as Record<string, unknown>
+
 	const typedData = {
-		domain: params.domain,
+		domain: normalizedDomain,
 		types: params.types,
 		primaryType: params.primaryType,
-		message: params.message,
+		message: normalizedMessage,
 	}
 	const rawSig = (await provider.request({
 		method: 'eth_signTypedData_v4',
-		params: [walletAddress, JSON.stringify(typedData, (_key, value) =>
-			typeof value === 'bigint' ? Number(value) : value
-		)],
+		params: [walletAddress, JSON.stringify(typedData)],
 	})) as `0x${string}`
 
 	const { r, s, v } = parseSignature(rawSig)
 
 	const recovered = await recoverTypedDataAddress({
-		domain: params.domain,
+		domain: normalizedDomain,
 		types: params.types as Record<string, Array<{ name: string; type: string }>>,
 		primaryType: params.primaryType,
-		message: params.message as Record<string, unknown>,
+		message: normalizedMessage,
 		signature: rawSig,
 	})
 
