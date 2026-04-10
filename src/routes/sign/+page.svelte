@@ -93,7 +93,7 @@
 		</Alert>
 
 		<div class="grid gap-6 lg:grid-cols-2">
-			<div class="space-y-4">
+			<div class="min-w-0 space-y-4">
 				<Card>
 					<CardHeader>
 						<CardTitle class="text-sm">1. Connect Wallet</CardTitle>

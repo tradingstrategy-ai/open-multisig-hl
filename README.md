@@ -45,7 +45,7 @@ TODO
 
 # Architecture
 
-- Uses Svelte and Viem
+- Built with Svelte and Viem
 
 # Support
 

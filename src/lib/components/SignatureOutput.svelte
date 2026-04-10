@@ -40,18 +40,18 @@
 			<div class="font-mono text-xs break-all">{result.signer}</div>
 		</div>
 
-		<div class="space-y-2">
-			<div class="text-muted-foreground text-xs">Signature Components</div>
-			<div class="bg-muted space-y-1 rounded-md p-3 font-mono text-xs">
-				<div><span class="text-muted-foreground">r:</span> {result.signature.r}</div>
-				<div><span class="text-muted-foreground">s:</span> {result.signature.s}</div>
-				<div><span class="text-muted-foreground">v:</span> {result.signature.v}</div>
+		<div class="min-w-0 space-y-2">
+			<div class="text-muted-foreground text-xs">Signature value</div>
+			<div class="bg-muted space-y-1 overflow-x-auto rounded-md p-3 font-mono text-[0.6rem]">
+				<div class="whitespace-nowrap"><span class="text-muted-foreground">r:</span> {result.signature.r}</div>
+				<div class="whitespace-nowrap"><span class="text-muted-foreground">s:</span> {result.signature.s}</div>
+				<div class="whitespace-nowrap"><span class="text-muted-foreground">v:</span> {result.signature.v}</div>
 			</div>
 		</div>
 
-		<div class="space-y-2">
-			<div class="text-muted-foreground text-xs">Full JSON</div>
-			<pre class="bg-muted max-h-48 overflow-auto rounded-md p-3 text-xs font-mono">{jsonBlob}</pre>
+		<div class="min-w-0 space-y-2">
+			<div class="text-muted-foreground text-xs">Signature JSON</div>
+			<pre class="bg-muted max-h-48 max-w-full overflow-auto rounded-md p-3 font-mono text-[0.6rem]">{jsonBlob}</pre>
 		</div>
 
 		<div class="flex gap-2">
