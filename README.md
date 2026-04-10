@@ -12,6 +12,8 @@ This application a web user interface for Hyperliquid native multisignature wall
 
 ![alt text](image.png)
 
+👉 [The web version is available on Github hosting](https://tradingstrategy-ai.github.io/open-multisig-hl/)
+
 # Beta warning
 
 - Limited functionality. The software supports only certain actions, but new actions are easy to add.
@@ -23,7 +25,7 @@ This application a web user interface for Hyperliquid native multisignature wall
 
 # Run
 
-To launch Open Hyperliquid Multisigner:
+To locally launch Open Hyperliquid Multisigner:
 
 ```shell
 pnpm run dev
