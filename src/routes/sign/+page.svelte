@@ -40,7 +40,7 @@
 		signError = null;
 		result = null;
 		try {
-			result = await signMultisig(wallet.provider, wallet.address, values);
+			result = await signMultisig(wallet.client, wallet.address, values);
 		} catch (err) {
 			signError = err instanceof Error ? err.message : 'Signing failed';
 		} finally {
