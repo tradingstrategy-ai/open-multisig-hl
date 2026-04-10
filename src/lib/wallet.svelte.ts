@@ -27,7 +27,7 @@ let connected = $state(false)
 let client = $state<WalletClient | null>(null)
 let connecting = $state(false)
 let error = $state<string | null>(null)
-let activeProvider: EIP6963ProviderDetail['provider'] | null = null
+let activeProvider = $state<EIP6963ProviderDetail['provider'] | null>(null)
 
 function handleAccountsChanged(accounts: unknown[]) {
 	if ((accounts as string[]).length === 0) {
@@ -111,6 +111,7 @@ export function getWallet() {
 		get address() { return address },
 		get connected() { return connected },
 		get client() { return client },
+		get provider() { return activeProvider },
 		get connecting() { return connecting },
 		get error() { return error },
 		get discoveredWallets() { return discoveredWallets },

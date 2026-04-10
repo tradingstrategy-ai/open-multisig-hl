@@ -1,21 +1,32 @@
-import { parseSignature, recoverTypedDataAddress, type WalletClient } from 'viem'
+import { parseSignature, recoverTypedDataAddress } from 'viem'
 import { buildSignTypedDataParams, getActionDef } from './eip712'
 import type { FormValues, SignatureResult } from './types'
 
+type Provider = {
+	request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+}
+
 export async function signMultisig(
-	walletClient: WalletClient,
+	provider: Provider,
 	walletAddress: string,
 	values: FormValues,
 ): Promise<SignatureResult> {
 	const params = buildSignTypedDataParams(values, walletAddress)
 
-	const rawSig = await walletClient.signTypedData({
-		account: walletAddress as `0x${string}`,
+	// Use eth_signTypedData_v4 directly to avoid viem enforcing that the wallet's
+	// current network chainId matches the EIP-712 domain chainId. Hyperliquid uses
+	// chainId 421614 in its domain as a protocol constant — users should be able to
+	// sign from any network without being forced to switch chains.
+	const typedData = {
 		domain: params.domain,
-		types: params.types as Record<string, Array<{ name: string; type: string }>>,
+		types: params.types,
 		primaryType: params.primaryType,
-		message: params.message as Record<string, unknown>,
-	})
+		message: params.message,
+	}
+	const rawSig = (await provider.request({
+		method: 'eth_signTypedData_v4',
+		params: [walletAddress, JSON.stringify(typedData)],
+	})) as `0x${string}`
 
 	const { r, s, v } = parseSignature(rawSig)
 
