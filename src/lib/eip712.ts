@@ -264,7 +264,15 @@ function buildMultisigTypes(actionDef: ActionDef) {
   for (const field of actionDef.fields) {
     baseTypes.push({ name: field.name, type: field.eip712Type })
   }
-  return { [actionDef.primaryType!]: baseTypes }
+  return {
+    EIP712Domain: [
+      { name: 'name', type: 'string' },
+      { name: 'version', type: 'string' },
+      { name: 'chainId', type: 'uint256' },
+      { name: 'verifyingContract', type: 'address' },
+    ],
+    [actionDef.primaryType!]: baseTypes,
+  }
 }
 
 function buildMultisigMessage(
@@ -273,7 +281,6 @@ function buildMultisigMessage(
 ) {
   const message: Record<string, unknown> = {
     hyperliquidChain: params.network,
-    signatureChainId: '0x66eee',
     payloadMultiSigUser: params.multisigAddress.toLowerCase(),
     outerSigner: params.outerSigner.toLowerCase(),
   }
