@@ -24,7 +24,13 @@ export const L1_DOMAIN = {
 } as const
 
 export const L1_TYPES = {
-  'Agent': [
+  EIP712Domain: [
+    { name: 'name', type: 'string' },
+    { name: 'version', type: 'string' },
+    { name: 'chainId', type: 'uint256' },
+    { name: 'verifyingContract', type: 'address' },
+  ],
+  Agent: [
     { name: 'source', type: 'string' },
     { name: 'connectionId', type: 'bytes32' },
   ],
