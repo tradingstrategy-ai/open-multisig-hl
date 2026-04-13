@@ -52,7 +52,10 @@
 		signError = null;
 		result = null;
 		try {
-			result = await signMultisig(provider, addr, values);
+			if (!session?.createdBy) {
+				throw new Error('Session is missing the coordinator address (createdBy). Ask the coordinator to reshare the session URL.');
+			}
+			result = await signMultisig(provider, addr, values, session.createdBy);
 		} catch (err) {
 			signError = err instanceof Error ? err.message : 'Signing failed';
 		} finally {
