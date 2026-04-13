@@ -5,12 +5,19 @@
 	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 	import type { SignatureResult, CoordinatorBundle } from '$lib/types.js';
 	import { getActionDef } from '$lib/eip712.js';
+	import { executeBundle } from '$lib/execute.js';
+	import { getWallet } from '$lib/wallet.svelte.js';
+
+	const wallet = getWallet();
 
 	let expanded = $state(false);
 	let input = $state('');
 	let parsed = $state<SignatureResult[] | null>(null);
 	let parseError = $state<string | null>(null);
 	let mismatchWarnings = $state<string[]>([]);
+	let executing = $state(false);
+	let executeResult = $state<{ success: boolean; response: unknown; requestBody: unknown } | null>(null);
+	let executeError = $state<string | null>(null);
 
 	function toggle() {
 		expanded = !expanded;
@@ -82,35 +89,77 @@
 		parsed = sigs;
 	}
 
-	function exportBundle() {
-		if (!parsed || parsed.length === 0) return;
-
+	function buildBundle(): CoordinatorBundle {
+		if (!parsed || parsed.length === 0) throw new Error('No signatures parsed');
 		const ref = parsed[0].payload;
 		const actionDef = getActionDef(ref.type);
-
-		// Build inner action from payload fields
 		let innerAction: Record<string, unknown>;
 		if (actionDef.buildAction) {
 			innerAction = actionDef.buildAction(ref.fields as Record<string, string>);
 		} else {
-			innerAction = { ...ref.fields };
+			// Build inner action matching Python SDK field order:
+			// type, then action fields, then signatureChainId, hyperliquidChain
+			innerAction = { type: ref.type };
+			for (const field of actionDef.fields) {
+				const raw = ref.fields[field.name] as string ?? '';
+				switch (field.eip712Type) {
+					case 'uint64':
+						innerAction[field.name] = parseInt(raw, 10);
+						break;
+					case 'bool':
+						innerAction[field.name] = raw === 'true';
+						break;
+					default:
+						innerAction[field.name] = raw;
+				}
+			}
+			innerAction.signatureChainId = '0x66eee';
+			innerAction.hyperliquidChain = ref.network === 'Mainnet' ? 'Mainnet' : 'Testnet';
 		}
+		const nonceField = actionDef.nonceField;
+		const inner_nonce = parseInt(ref.fields[nonceField] as string, 10);
 
-		const bundle: CoordinatorBundle = {
+		return {
 			signatures: parsed.map((s) => s.signature),
 			inner_action: innerAction,
+			inner_nonce,
 			multisig_user: ref.multisigAddress,
 			network: ref.network,
 		};
+	}
 
+	function exportBundle() {
+		if (!parsed || parsed.length === 0) return;
+		const bundle = buildBundle();
 		const json = JSON.stringify(bundle, null, 2);
 		const blob = new Blob([json], { type: 'application/json' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `bundle-${ref.type}-${Date.now()}.json`;
+		a.download = `bundle-${parsed[0].payload.type}-${Date.now()}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
+	}
+
+	async function execute() {
+		if (!parsed || parsed.length === 0) return;
+		if (!wallet.provider || !wallet.address) {
+			executeError = 'Connect your wallet first.';
+			return;
+		}
+		executing = true;
+		executeError = null;
+		executeResult = null;
+		try {
+			const bundle = buildBundle();
+			const vaultAddress = parsed[0].payload.vaultAddress || null;
+			const result = await executeBundle(wallet.provider, wallet.address, bundle, vaultAddress);
+			executeResult = result;
+		} catch (err) {
+			executeError = err instanceof Error ? err.message : String(err);
+		} finally {
+			executing = false;
+		}
 	}
 </script>
 
@@ -169,10 +218,41 @@
 							<span class="font-mono text-xs">{sig.signer.slice(0, 8)}...</span>{i < parsed.length - 1 ? ', ' : ''}
 						{/each}
 					</p>
-					<Button variant="default" size="sm" onclick={exportBundle}>
-						Export Bundle
-					</Button>
+					<div class="flex gap-2">
+						<Button variant="outline" size="sm" onclick={exportBundle}>
+							Export Bundle
+						</Button>
+						<Button
+							variant="default"
+							size="sm"
+							onclick={execute}
+							disabled={executing || !wallet.connected}
+						>
+							{executing ? 'Executing…' : 'Execute'}
+						</Button>
+					</div>
 				</div>
+			{/if}
+			{#if executeError}
+				<Alert variant="destructive">
+					<AlertDescription>{executeError}</AlertDescription>
+				</Alert>
+			{/if}
+
+			{#if executeResult}
+				<Alert class={executeResult.success ? 'border-green-500/50 bg-green-50 dark:bg-green-950/50' : 'border-red-500/50 bg-red-50 dark:bg-red-950/50'}>
+					<AlertDescription>
+						{#if executeResult.success}
+							Transaction submitted successfully.
+						{:else}
+							<div class="space-y-2">
+								<div>Submission failed: {JSON.stringify(executeResult.response)}</div>
+								<div class="text-xs font-medium">Request body sent:</div>
+								<pre class="overflow-auto text-xs">{JSON.stringify(executeResult.requestBody, null, 2)}</pre>
+							</div>
+						{/if}
+					</AlertDescription>
+				</Alert>
 			{/if}
 		</CardContent>
 	{/if}
