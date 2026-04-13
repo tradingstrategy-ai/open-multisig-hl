@@ -110,7 +110,6 @@ async function signMultiSigEnvelope(
     primaryType: "HyperliquidTransaction:SendMultiSig",
     message: {
       hyperliquidChain: network === "Mainnet" ? "Mainnet" : "Testnet",
-      signatureChainId: "0x66eee",
       multiSigActionHash: hashHex,
       nonce,
     },
