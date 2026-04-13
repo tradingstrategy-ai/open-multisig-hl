@@ -17,12 +17,20 @@ function normalizeBigInts(obj: unknown): unknown {
 	return obj
 }
 
+/**
+ * Sign an inner multisig payload.
+ *
+ * @param outerSignerAddress - The address that will submit the bundle (outer signer).
+ *   Defaults to walletAddress if omitted. For multi-party flows, pass the coordinator's
+ *   address so all inner EIP-712 messages commit to the same outerSigner.
+ */
 export async function signMultisig(
 	provider: Provider,
 	walletAddress: string,
 	values: FormValues,
+	outerSignerAddress?: string,
 ): Promise<SignatureResult> {
-	const params = buildSignTypedDataParams(values, walletAddress)
+	const params = buildSignTypedDataParams(values, outerSignerAddress ?? walletAddress)
 
 	// Normalize BigInts before serialization
 	const domain = normalizeBigInts(params.domain) as typeof params.domain

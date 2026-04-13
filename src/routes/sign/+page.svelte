@@ -52,7 +52,10 @@
 		signError = null;
 		result = null;
 		try {
-			result = await signMultisig(provider, addr, values);
+			// Pass session.createdBy as the outer signer so all inner EIP-712
+			// messages commit to the same coordinator address. Hyperliquid
+			// verifies that all inner signatures name the same outerSigner.
+			result = await signMultisig(provider, addr, values, session?.createdBy);
 		} catch (err) {
 			signError = err instanceof Error ? err.message : 'Signing failed';
 		} finally {

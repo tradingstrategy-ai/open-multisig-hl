@@ -6,6 +6,7 @@
 	import SignButton from '$lib/components/SignButton.svelte';
 	import SignatureOutput from '$lib/components/SignatureOutput.svelte';
 	import CoordinatorHelper from '$lib/components/CoordinatorHelper.svelte';
+	import SessionShare from '$lib/components/SessionShare.svelte';
 	import WrongChainAlert from '$lib/components/WrongChainAlert.svelte';
 	import BalanceBox from '$lib/components/BalanceBox.svelte';
 	import NetworkSwitch from '$lib/components/NetworkSwitch.svelte';
@@ -150,5 +151,6 @@
 		</Card>
 	</div>
 
+	<SessionShare {values} disabled={!canSign} />
 	<CoordinatorHelper />
 </div>
