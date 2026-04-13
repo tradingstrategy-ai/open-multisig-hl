@@ -98,7 +98,6 @@ export interface CoordinatorBundle {
     v: number;
   }>;
   inner_action: Record<string, unknown>;
-  inner_nonce: number;
   multisig_user: string;
   network: Network;
 }

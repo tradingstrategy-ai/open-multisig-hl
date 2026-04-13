@@ -116,13 +116,9 @@
 			innerAction.signatureChainId = '0x66eee';
 			innerAction.hyperliquidChain = ref.network === 'Mainnet' ? 'Mainnet' : 'Testnet';
 		}
-		const nonceField = actionDef.nonceField;
-		const inner_nonce = parseInt(ref.fields[nonceField] as string, 10);
-
 		return {
 			signatures: parsed.map((s) => s.signature),
 			inner_action: innerAction,
-			inner_nonce,
 			multisig_user: ref.multisigAddress,
 			network: ref.network,
 		};

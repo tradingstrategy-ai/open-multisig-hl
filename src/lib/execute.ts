@@ -174,9 +174,11 @@ export async function executeBundle(
   bundle: CoordinatorBundle,
   vaultAddress: string | null,
 ): Promise<ExecuteResult> {
-  // The outer nonce must match the inner action's nonce — the action hash
-  // depends on it, and all parties must agree on the same value.
-  const nonce = bundle.inner_nonce;
+  // Fresh timestamp for the outer envelope, matching the Python SDK's
+  // multi_sig(nonce=get_timestamp_ms()). The outer nonce is independent
+  // of the inner action's nonce — it just needs to be consistent between
+  // the action hash, the EIP-712 message, and the POST body.
+  const nonce = Date.now();
   const isMainnet = bundle.network === "Mainnet";
   const exchangeUrl = isMainnet ? MAINNET_EXCHANGE : TESTNET_EXCHANGE;
 
