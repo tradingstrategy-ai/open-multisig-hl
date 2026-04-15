@@ -98,11 +98,15 @@
 			innerAction = actionDef.buildAction(ref.fields as Record<string, string>);
 		} else {
 			// Build inner action matching Python SDK field order.
-			// The inner action in the multiSig payload must NOT include
-			// signatureChainId or hyperliquidChain — the Python SDK adds
-			// those only to the EIP-712 signing copy, not the original action
-			// passed to multi_sig().
-			innerAction = { type: ref.type };
+			// As of SDK 0.23.0 (2026-04-14), the API requires signatureChainId and
+			// hyperliquidChain to be present in the inner action of the multiSig payload.
+			// Previously these were added only to the EIP-712 signing copy; now they
+			// must also appear in the action dict that is posted.
+			innerAction = {
+				type: ref.type,
+				signatureChainId: '0x66eee',
+				hyperliquidChain: ref.network,
+			};
 			for (const field of actionDef.fields) {
 				const raw = ref.fields[field.name] as string ?? '';
 				switch (field.eip712Type) {
