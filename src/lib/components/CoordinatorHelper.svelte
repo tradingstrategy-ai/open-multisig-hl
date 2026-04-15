@@ -112,6 +112,9 @@
 					case 'bool':
 						innerAction[field.name] = raw === 'true';
 						break;
+					case 'address':
+						innerAction[field.name] = raw.toLowerCase();
+						break;
 					default:
 						innerAction[field.name] = raw;
 				}
