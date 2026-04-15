@@ -130,6 +130,7 @@
 			inner_action: innerAction,
 			multisig_user: ref.multisigAddress,
 			network: ref.network,
+			nonce: parseInt(ref.fields[actionDef.nonceField] as string ?? '0', 10),
 		};
 	}
 

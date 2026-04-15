@@ -100,4 +100,5 @@ export interface CoordinatorBundle {
   inner_action: Record<string, unknown>
   multisig_user: string
   network: Network
+  nonce: number
 }
