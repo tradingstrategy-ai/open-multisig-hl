@@ -161,7 +161,9 @@ export async function executeBundle(
 	bundle: CoordinatorBundle,
 	vaultAddress: string | null,
 ): Promise<ExecuteResult> {
-	const nonce = Date.now()
+	// The outer nonce must match the inner action's nonce field.
+	// Hyperliquid rejects with "Nonce mismatch" if they differ.
+	const nonce = bundle.nonce
 	const isMainnet = bundle.network === 'Mainnet'
 	const exchangeUrl = isMainnet ? MAINNET_EXCHANGE : TESTNET_EXCHANGE
 
