@@ -1,134 +1,123 @@
+/**
+ * Reactive wallet store backed by AppKit + wagmi.
+ *
+ * The previous implementation used raw EIP-6963 discovery, which only
+ * surfaced browser-extension wallets. This rewrite delegates discovery and
+ * connection to AppKit's modal so WalletConnect-bridged mobile wallets work
+ * in addition to the existing browser-extension flow.
+ *
+ * The public `getWallet()` interface is intentionally unchanged so downstream
+ * components (signing.ts, l1signing.ts, execute.ts, ConnectWallet.svelte,
+ * WrongChainAlert.svelte, …) keep working without modification.
+ */
+
+import { browser } from '$app/environment'
+import {
+	getAccount,
+	watchAccount,
+	reconnect,
+	disconnect as wagmiDisconnect,
+	switchChain as wagmiSwitchChain,
+	type GetAccountReturnType,
+} from '@wagmi/core'
 import { createWalletClient, custom, type WalletClient } from 'viem'
-import { CHAINS, toHexChainId } from './chains'
+import { config, modal } from './wallet/client'
 
-// EIP-6963 types
-interface EIP6963ProviderInfo {
-	uuid: string
-	name: string
-	icon: string // data URI
-	rdns: string
+/**
+ * EIP-1193 provider — minimal shape needed by signing.ts / l1signing.ts /
+ * execute.ts. Wagmi connectors all expose `getProvider()` returning an object
+ * with this shape, regardless of the underlying transport (injected, WC, etc.).
+ */
+type EIP1193Provider = {
+	request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+	on?: (event: string, handler: (...args: unknown[]) => void) => void
+	removeListener?: (event: string, handler: (...args: unknown[]) => void) => void
 }
 
-interface EIP6963ProviderDetail {
-	info: EIP6963ProviderInfo
-	provider: {
-		request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
-		on: (event: string, handler: (...args: unknown[]) => void) => void
-		removeListener: (event: string, handler: (...args: unknown[]) => void) => void
-	}
-}
-
-// Discovered wallets via EIP-6963
-let discoveredWallets = $state<EIP6963ProviderDetail[]>([])
-let showPicker = $state(false)
-
-// Active wallet state
 let address = $state<string | null>(null)
 let connected = $state(false)
 let client = $state<WalletClient | null>(null)
-let connecting = $state(false)
-let error = $state<string | null>(null)
-let activeProvider = $state<EIP6963ProviderDetail['provider'] | null>(null)
+let provider = $state<EIP1193Provider | null>(null)
 let chainId = $state<number | null>(null)
+let connecting = $state(false)
 let switchingChain = $state(false)
+let error = $state<string | null>(null)
 
-function handleAccountsChanged(accounts: unknown[]) {
-	if ((accounts as string[]).length === 0) {
-		disconnect()
-	} else {
-		address = (accounts as string[])[0]
-		if (activeProvider) {
+let providerSyncToken = 0
+
+async function syncFromAccount(account: GetAccountReturnType) {
+	address = account.address ?? null
+	connected = account.status === 'connected'
+	chainId = account.chainId ?? null
+
+	// Resolve the EIP-1193 provider from the active connector. Bail out if a
+	// newer sync started while we were awaiting (avoids race-condition writes
+	// when the user disconnects/reconnects rapidly).
+	const token = ++providerSyncToken
+	if (account.connector && account.address) {
+		try {
+			const p = (await account.connector.getProvider()) as EIP1193Provider
+			if (token !== providerSyncToken) return
+			provider = p
 			client = createWalletClient({
-				account: address as `0x${string}`,
-				transport: custom(activeProvider),
+				account: account.address as `0x${string}`,
+				transport: custom(p),
 			})
+		} catch {
+			if (token !== providerSyncToken) return
+			provider = null
+			client = null
 		}
+	} else {
+		provider = null
+		client = null
 	}
 }
 
-function handleChainChanged(...args: unknown[]) {
-	const raw = args[0]
-	if (typeof raw === 'string') {
-		const parsed = parseInt(raw, 16)
-		chainId = Number.isFinite(parsed) ? parsed : null
-	} else if (typeof raw === 'number') {
-		chainId = raw
-	}
+if (browser) {
+	void syncFromAccount(getAccount(config))
+	watchAccount(config, { onChange: (account) => void syncFromAccount(account) })
+	// Restore previous session on full page load (e.g. coordinator paste flow
+	// after a reload). reconnect() is a no-op when no prior session exists.
+	void reconnect(config).catch(() => {})
 }
 
-async function refreshChainId() {
-	if (!activeProvider) return
-	try {
-		const hex = (await activeProvider.request({ method: 'eth_chainId' })) as string
-		const parsed = parseInt(hex, 16)
-		chainId = Number.isFinite(parsed) ? parsed : null
-	} catch {
-		chainId = null
-	}
-}
-
-async function connectProvider(detail: EIP6963ProviderDetail) {
-	connecting = true
+function connect() {
 	error = null
-	showPicker = false
+	connecting = true
 	try {
-		const accounts = (await detail.provider.request({
-			method: 'eth_requestAccounts',
-		})) as string[]
-		if (accounts.length === 0) {
-			error = 'No accounts returned'
-			return
-		}
-		activeProvider = detail.provider
-		address = accounts[0]
-		connected = true
-		client = createWalletClient({
-			account: address as `0x${string}`,
-			transport: custom(detail.provider),
-		})
-		detail.provider.on('accountsChanged', handleAccountsChanged)
-		detail.provider.on('chainChanged', handleChainChanged)
-		await refreshChainId()
+		modal.open({ view: 'Connect' })
 	} catch (err) {
 		error = err instanceof Error ? err.message : 'Connection failed'
 	} finally {
+		// Modal is now responsible for the connection UX; flip the flag back so
+		// the trigger button isn't stuck in a "Connecting…" state. Real account
+		// state propagates via watchAccount above.
 		connecting = false
 	}
 }
 
+async function disconnect() {
+	error = null
+	try {
+		await wagmiDisconnect(config)
+	} catch (err) {
+		error = err instanceof Error ? err.message : 'Disconnect failed'
+	}
+}
+
 /**
- * Ask the wallet to switch to a specific chain. If the wallet doesn't know the
- * chain yet (EIP-3326 error 4902) and we have local metadata for it in
- * `CHAINS`, fall back to `wallet_addEthereumChain`.
+ * Ask the wallet to switch to a specific chain.
+ *
+ * Wagmi handles wallet_switchEthereumChain + wallet_addEthereumChain internally
+ * for chains in the AppKit network list, so we no longer need the manual 4902
+ * fallback that lived in the previous EIP-6963 implementation.
  */
 async function switchChain(targetChainId: number): Promise<void> {
-	if (!activeProvider) {
-		throw new Error('No wallet connected')
-	}
 	switchingChain = true
 	error = null
 	try {
-		try {
-			await activeProvider.request({
-				method: 'wallet_switchEthereumChain',
-				params: [{ chainId: toHexChainId(targetChainId) }],
-			})
-		} catch (err: unknown) {
-			// 4902: chain not recognised by the wallet. Offer to add it if known.
-			const code = (err as { code?: number; data?: { originalError?: { code?: number } } })?.code
-				?? (err as { data?: { originalError?: { code?: number } } })?.data?.originalError?.code
-			if (code === 4902 && CHAINS[targetChainId]) {
-				await activeProvider.request({
-					method: 'wallet_addEthereumChain',
-					params: [CHAINS[targetChainId]],
-				})
-			} else {
-				throw err
-			}
-		}
-		// `chainChanged` will fire and update our state, but refresh defensively
-		// in case the wallet doesn't emit it.
-		await refreshChainId()
+		await wagmiSwitchChain(config, { chainId: targetChainId })
 	} catch (err) {
 		error = err instanceof Error ? err.message : 'Chain switch failed'
 		throw err
@@ -137,59 +126,33 @@ async function switchChain(targetChainId: number): Promise<void> {
 	}
 }
 
-function connect() {
-	error = null
-	if (discoveredWallets.length === 0) {
-		error = 'No wallet detected. Install MetaMask or Rabby.'
-		return
-	}
-	if (discoveredWallets.length === 1) {
-		connectProvider(discoveredWallets[0])
-		return
-	}
-	// Multiple wallets — show picker
-	showPicker = true
-}
-
-function disconnect() {
-	if (activeProvider) {
-		activeProvider.removeListener('accountsChanged', handleAccountsChanged)
-		activeProvider.removeListener('chainChanged', handleChainChanged)
-	}
-	address = null
-	connected = false
-	client = null
-	activeProvider = null
-	chainId = null
-}
-
-// Start EIP-6963 discovery immediately (module-level, runs once)
-if (typeof window !== 'undefined') {
-	window.addEventListener('eip6963:announceProvider', (event: Event) => {
-		const detail = (event as CustomEvent<EIP6963ProviderDetail>).detail
-		// Deduplicate by uuid
-		if (!discoveredWallets.find((w) => w.info.uuid === detail.info.uuid)) {
-			discoveredWallets = [...discoveredWallets, detail]
-		}
-	})
-	window.dispatchEvent(new Event('eip6963:requestProvider'))
-}
-
 export function getWallet() {
 	return {
-		get address() { return address },
-		get connected() { return connected },
-		get client() { return client },
-		get provider() { return activeProvider },
-		get connecting() { return connecting },
-		get error() { return error },
-		get chainId() { return chainId },
-		get switchingChain() { return switchingChain },
-		get discoveredWallets() { return discoveredWallets },
-		get showPicker() { return showPicker },
-		set showPicker(v: boolean) { showPicker = v },
+		get address() {
+			return address
+		},
+		get connected() {
+			return connected
+		},
+		get client() {
+			return client
+		},
+		get provider() {
+			return provider
+		},
+		get connecting() {
+			return connecting
+		},
+		get error() {
+			return error
+		},
+		get chainId() {
+			return chainId
+		},
+		get switchingChain() {
+			return switchingChain
+		},
 		connect,
-		connectProvider,
 		disconnect,
 		switchChain,
 	}
