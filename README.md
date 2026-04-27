@@ -24,9 +24,12 @@ This application a web user interface for Hyperliquid native multisignature wall
 
 # Run
 
-To launch Open Hyperliquid Multisigner:
+Copy `.env.example` to `.env` and set `TS_PUBLIC_WALLET_CONNECT_PROJECT_ID` to a free project ID from [cloud.reown.com](https://cloud.reown.com). Without it the WalletConnect (mobile wallet) flow is disabled — desktop browser extensions still work.
 
 ```shell
+cp .env.example .env
+# edit .env
+pnpm install
 pnpm run dev
 ```
 
