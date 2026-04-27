@@ -75,6 +75,19 @@ TODO
 
 - Built with Svelte and Viem
 
+# Secret scanning
+
+This repo runs [gitleaks](https://github.com/gitleaks/gitleaks) on every PR and push to `main` ([.github/workflows/secret-scan.yml](.github/workflows/secret-scan.yml)) — that check is the source of truth and cannot be bypassed by `git commit --no-verify`.
+
+For faster local feedback, [husky](https://typicode.github.io/husky) wires the same scan into a pre-commit hook ([.husky/pre-commit](.husky/pre-commit)). It runs automatically after `pnpm install` if `gitleaks` is present on your `PATH`. Install locally with:
+
+```shell
+brew install gitleaks   # macOS
+# or see https://github.com/gitleaks/gitleaks#installing
+```
+
+If gitleaks isn't installed, the hook prints a warning and exits cleanly — the CI scan still catches anything missed locally. Project-specific allowlist entries live in [.gitleaks.toml](.gitleaks.toml).
+
 # Support
 
 - [Join Discord for any questions](https://tradingstrategy.ai/community).
