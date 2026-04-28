@@ -24,9 +24,12 @@ This application a web user interface for Hyperliquid native multisignature wall
 
 # Run
 
-To launch Open Hyperliquid Multisigner:
+Copy `.env.example` to `.env` and set `TS_PUBLIC_WALLET_CONNECT_PROJECT_ID` to a free project ID from [cloud.reown.com](https://cloud.reown.com). Without it the WalletConnect (mobile wallet) flow is disabled — desktop browser extensions still work.
 
 ```shell
+cp .env.example .env
+# edit .env
+pnpm install
 pnpm run dev
 ```
 
@@ -71,6 +74,19 @@ TODO
 # Architecture
 
 - Built with Svelte and Viem
+
+# Secret scanning
+
+This repo runs [gitleaks](https://github.com/gitleaks/gitleaks) on every PR and push to `main` ([.github/workflows/secret-scan.yml](.github/workflows/secret-scan.yml)) — that check is the source of truth and cannot be bypassed by `git commit --no-verify`.
+
+For faster local feedback, [husky](https://typicode.github.io/husky) wires the same scan into a pre-commit hook ([.husky/pre-commit](.husky/pre-commit)). It runs automatically after `pnpm install` if `gitleaks` is present on your `PATH`. Install locally with:
+
+```shell
+brew install gitleaks   # macOS
+# or see https://github.com/gitleaks/gitleaks#installing
+```
+
+If gitleaks isn't installed, the hook prints a warning and exits cleanly — the CI scan still catches anything missed locally. Project-specific allowlist entries live in [.gitleaks.toml](.gitleaks.toml).
 
 # Support
 

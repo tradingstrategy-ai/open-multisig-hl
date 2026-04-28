@@ -15,6 +15,11 @@ const config = {
 			// Set by the GitHub Pages workflow to "/open-multisig-hl".
 			// Empty string in local dev/preview so pnpm run dev stays unchanged.
 			base: process.env.BASE_PATH ?? ''
+		},
+		env: {
+			// Project convention (see CLAUDE.md): client-accessible env vars use
+			// the TS_PUBLIC_ prefix to match the wider tradingstrategy-ai stack.
+			publicPrefix: 'TS_PUBLIC_'
 		}
 	}
 };

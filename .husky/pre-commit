@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+# Pre-commit hook: scan staged changes for secrets via gitleaks.
+#
+# Skipped (with a warning) if gitleaks is not installed locally — the CI
+# secret-scan workflow still runs on every push to enforce coverage. Local
+# enforcement just gives faster feedback before the push.
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo ""
+    echo "  gitleaks not installed locally — skipping pre-commit secret scan."
+    echo "  Install for local enforcement:"
+    echo "    macOS:  brew install gitleaks"
+    echo "    other:  https://github.com/gitleaks/gitleaks#installing"
+    echo "  CI runs the same scan on every push, so missed catches still fail builds."
+    echo ""
+    exit 0
+fi
+
+if ! gitleaks protect --staged --no-banner --redact; then
+    echo ""
+    echo "  gitleaks detected potential secrets in your staged changes."
+    echo "  Resolve the finding above (or add a path to .gitleaks.toml allowlist)"
+    echo "  before committing. To bypass for a known false positive:"
+    echo "    git commit --no-verify"
+    echo "  …but the CI scan will still run, so prefer fixing the allowlist."
+    echo ""
+    exit 1
+fi

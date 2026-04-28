@@ -47,6 +47,10 @@ jobs:
           # so SvelteKit needs this as its base path. svelte.config.js
           # reads it via process.env.BASE_PATH.
           BASE_PATH: /open-multisig-hl
+          # WalletConnect (Reown Cloud) project ID — baked into the static
+          # bundle at build time so AppKit's mobile-wallet QR flow works.
+          # Set as a repo secret: Settings → Secrets and variables → Actions.
+          TS_PUBLIC_WALLET_CONNECT_PROJECT_ID: ${{ secrets.WALLET_CONNECT_PROJECT_ID }}
         run: pnpm run build
 
       - name: Disable Jekyll

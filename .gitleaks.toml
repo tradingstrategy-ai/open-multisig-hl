@@ -1,0 +1,23 @@
+# gitleaks configuration — extends the default ruleset with project-specific
+# allowlist entries. See https://github.com/gitleaks/gitleaks#configuration
+# for the full reference.
+
+[extend]
+# Inherit gitleaks' built-in rules (AWS keys, GitHub tokens, generic
+# high-entropy strings, etc.). We only add allowlists below.
+useDefault = true
+
+[allowlist]
+description = "Project-wide allowlist for files that legitimately contain pattern matches"
+
+paths = [
+    # .env.example only contains keys (no values) — safe to commit, used as
+    # a template for local .env files.
+    '''\.env\.example''',
+    # CHANGELOG references commit hashes which can match the
+    # "generic-api-key" pattern at high entropy.
+    '''CHANGELOG\.md''',
+    # pnpm-lock.yaml contains content-addressed package hashes that can trip
+    # entropy-based detection.
+    '''pnpm-lock\.yaml''',
+]
