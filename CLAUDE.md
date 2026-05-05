@@ -111,6 +111,30 @@ Use Chrome remote debugging MCP only when you specifically need to attach to an 
 
 Does not work properly yet.
 
+## Hyperliquid protocol gotchas
+
+Hard-won lessons about the Hyperliquid multisig wire protocol. Violating any of these produces opaque errors.
+
+**Signature trimming (outer action hash)**
+
+The server strips leading zeros from inner signature `r` and `s` values before recomputing the `multiSig` action hash to verify the outer signer. You must do the same — trim before hashing, and send the trimmed values in the POST body. Sending raw (untrimmed) signatures causes the server's hash to diverge from yours, the outer sig recovers to the wrong address, and the server returns `"Invalid multi-sig outer signer"` with no further detail. This error message is misleading — the signer address and key are correct; only the hash input differs. See `trimSignature()` in `src/lib/execute.ts` and `trim_sig()` in `submit_multisig.py`.
+
+**Outer nonce must match inner action nonce**
+
+The top-level POST `nonce` and the `SendMultiSig` EIP-712 message `nonce` must be identical to the nonce field inside the inner action. Using `Date.now()` at submission time produces a mismatch; the server returns `"Nonce mismatch"`.
+
+**Agent name length**
+
+`approveAgent` enforces a 1–16 character limit on `agentName`. The server returns `"Extra agent name must be between 1 and 16 characters long"`.
+
+**Nonce must be monotonically increasing**
+
+Reusing or replaying a nonce lower than the last accepted one returns `"Invalid nonce: nonce too low"`. Always use a fresh timestamp after a failed submission.
+
+**EIP712Domain must be explicit**
+
+Rabby (and MetaMask internally via `@metamask/eth-sig-util`) computes a different domain separator when `EIP712Domain` is omitted from the `types` object. Always include it explicitly in both inner and outer `eth_signTypedData_v4` calls.
+
 ## Pull requests
 
 - Pull request description must have sections Why (the rational of change), Lessons learnt (memory for future agents) and Summary (what was changed). No test plan or verification section.
