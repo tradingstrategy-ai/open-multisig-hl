@@ -256,6 +256,8 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
 // ============================================================================
 
 function buildMultisigTypes(actionDef: ActionDef) {
+  // SDK inserts payloadMultiSigUser + outerSigner immediately after hyperliquidChain
+  // via add_multi_sig_types(). Order must match exactly.
   const baseTypes: Array<{ name: string; type: string }> = [
     { name: 'hyperliquidChain', type: 'string' },
     { name: 'payloadMultiSigUser', type: 'address' },

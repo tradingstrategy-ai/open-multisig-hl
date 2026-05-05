@@ -16,12 +16,27 @@ type Provider = {
 	request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
 }
 
+type Signature = { r: string; s: string; v: number }
+
 function hexToBytes(hex: string): Uint8Array {
 	const bytes = new Uint8Array(hex.length / 2)
 	for (let i = 0; i < hex.length; i += 2) {
 		bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
 	}
 	return bytes
+}
+
+// nktkas/hyperliquid SDK trims leading zeros from r and s before including
+// signatures in the multiSig action that gets msgpacked for the outer hash.
+// The server does the same before recomputing the hash to verify the outer sig.
+// If we send raw (untrimmed) sigs, the server's hash diverges from ours and
+// the outer sig recovery fails → "Invalid multi-sig outer signer".
+function trimSignature(sig: Signature): Signature {
+	const trimHex = (hex: string) => {
+		const stripped = hex.slice(2).replace(/^0+/, '')
+		return '0x' + (stripped || '0')
+	}
+	return { r: trimHex(sig.r), s: trimHex(sig.s), v: sig.v }
 }
 
 /**
@@ -167,10 +182,14 @@ export async function executeBundle(
 	const isMainnet = bundle.network === 'Mainnet'
 	const exchangeUrl = isMainnet ? MAINNET_EXCHANGE : TESTNET_EXCHANGE
 
+	// Trim leading zeros from r/s — the server trims before recomputing
+	// the outer action hash, so we must hash the same trimmed form.
+	const trimmedSignatures = bundle.signatures.map(trimSignature)
+
 	const multiSigAction = {
 		type: 'multiSig',
 		signatureChainId: '0x66eee',
-		signatures: bundle.signatures,
+		signatures: trimmedSignatures,
 		payload: {
 			multiSigUser: bundle.multisig_user.toLowerCase(),
 			outerSigner: outerSigner.toLowerCase(),
