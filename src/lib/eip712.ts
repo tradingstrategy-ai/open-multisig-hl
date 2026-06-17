@@ -170,10 +170,7 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
     type: 'createVault',
     label: 'Create Vault',
     description:
-      'Create a new Hyperliquid vault. The signing multisig becomes the vault leader. ' +
-      'Per Hyperliquid docs, vault creation has a ~10,000 USDC protocol fee in addition to the ' +
-      'initial deposit (minimum 100 USDC). Ensure the multisig perp account holds enough to cover both ' +
-      'before signing — a failed attempt costs nothing but funds need to be in place for success.',
+      'Create a new Hyperliquid vault. The signing multisig becomes the vault leader. Minimum 100 USDC initial deposit.',
     signingMode: 'l1',
     nonceField: '_nonce',
     fields: [
@@ -200,10 +197,7 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
         placeholder: 'e.g. 100000000 for 100 USDC',
         required: true,
         mono: true,
-        help:
-          'Raw integer (USDC * 1e6). Minimum 100000000 (100 USDC). ' +
-          'Hyperliquid charges a ~10,000 USDC protocol fee in addition to this deposit, ' +
-          'so the multisig perp account needs at least (initialUsd + 10000) USDC.',
+        help: 'Raw integer (USDC * 1e6). Minimum 100000000 (100 USDC).',
       },
       {
         name: '_nonce',
