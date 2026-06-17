@@ -19,6 +19,9 @@ export type ActionType =
   | 'sendAsset'
   // L1 actions (phantom agent pattern)
   | 'vaultTransfer'
+  | 'createVault'
+  | 'vaultModify'
+  | 'vaultDistribute'
   | 'subAccountTransfer'
   | 'subAccountSpotTransfer'
   | 'createSubAccount'

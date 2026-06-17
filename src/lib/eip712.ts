@@ -166,6 +166,158 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
       usd: parseInt(fields.usd),
     }),
   },
+  createVault: {
+    type: 'createVault',
+    label: 'Create Vault',
+    description:
+      'Create a new Hyperliquid vault. The signing multisig becomes the vault leader. Minimum 100 USDC initial deposit.',
+    signingMode: 'l1',
+    nonceField: '_nonce',
+    fields: [
+      {
+        name: 'name',
+        label: 'Vault Name',
+        eip712Type: 'string',
+        placeholder: '3-50 characters',
+        required: true,
+        help: 'Between 3 and 50 characters.',
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        eip712Type: 'string',
+        placeholder: '10-250 characters',
+        required: true,
+        help: 'Between 10 and 250 characters.',
+      },
+      {
+        name: 'initialUsd',
+        label: 'Initial Deposit (raw integer)',
+        eip712Type: 'int',
+        placeholder: 'e.g. 100000000 for 100 USDC',
+        required: true,
+        mono: true,
+        help: 'Raw integer (USDC * 1e6). Minimum 100000000 (100 USDC).',
+      },
+      {
+        name: '_nonce',
+        label: 'Nonce',
+        eip712Type: 'uint64',
+        placeholder: 'Timestamp in ms',
+        required: true,
+        mono: true,
+      },
+    ],
+    // createVault is the one L1 action whose canonical wire shape carries an
+    // inner `nonce` field equal to the envelope nonce. The msgpack hash
+    // includes the action dict (with inner nonce) AND appends the envelope
+    // nonce bytes separately; both must be the same value. See nktkas/hyperliquid
+    // src/api/exchange/_methods/createVault.ts for the reference implementation.
+    buildAction: (fields) => ({
+      type: 'createVault',
+      name: fields.name,
+      description: fields.description,
+      initialUsd: parseInt(fields.initialUsd),
+      nonce: parseInt(fields._nonce),
+    }),
+  },
+  vaultModify: {
+    type: 'vaultModify',
+    label: 'Vault Modify',
+    description:
+      'Modify configuration of a vault you lead. Leave a toggle unset to keep the vault’s current value for that setting.',
+    signingMode: 'l1',
+    nonceField: '_nonce',
+    fields: [
+      {
+        name: 'vaultAddress',
+        label: 'Vault Address',
+        eip712Type: 'string',
+        placeholder: '0x...',
+        required: true,
+        mono: true,
+      },
+      {
+        name: 'allowDeposits',
+        label: 'Allow Deposits?',
+        eip712Type: 'bool',
+        required: false,
+        help: 'Leave unset to keep the vault’s current setting. Set Yes/No only to explicitly change it.',
+      },
+      {
+        name: 'alwaysCloseOnWithdraw',
+        label: 'Always Close On Withdraw?',
+        eip712Type: 'bool',
+        required: false,
+        help: 'Leave unset to keep the vault’s current setting. Set Yes/No only to explicitly change it.',
+      },
+      {
+        name: '_nonce',
+        label: 'Nonce',
+        eip712Type: 'uint64',
+        placeholder: 'Timestamp in ms',
+        required: true,
+        mono: true,
+      },
+    ],
+    // Per Hyperliquid wire shape (nktkas/hyperliquid vaultModify.ts):
+    // null = "leave this setting unchanged on Hyperliquid". An unset toggle
+    // in the UI maps to null so signers cannot accidentally flip a setting
+    // they did not intend to touch.
+    buildAction: (fields) => {
+      const parseTriState = (raw: string | undefined): boolean | null => {
+        if (raw === 'true') return true
+        if (raw === 'false') return false
+        return null
+      }
+      return {
+        type: 'vaultModify',
+        vaultAddress: fields.vaultAddress,
+        allowDeposits: parseTriState(fields.allowDeposits),
+        alwaysCloseOnWithdraw: parseTriState(fields.alwaysCloseOnWithdraw),
+      }
+    },
+  },
+  vaultDistribute: {
+    type: 'vaultDistribute',
+    label: 'Vault Distribute',
+    description:
+      'Distribute funds from a vault you lead back to depositors. Use usd=0 to close the vault.',
+    signingMode: 'l1',
+    nonceField: '_nonce',
+    fields: [
+      {
+        name: 'vaultAddress',
+        label: 'Vault Address',
+        eip712Type: 'string',
+        placeholder: '0x...',
+        required: true,
+        mono: true,
+      },
+      {
+        name: 'usd',
+        label: 'Amount (raw integer)',
+        eip712Type: 'int',
+        placeholder: 'e.g. 100000000 for 100 USDC; 0 to close vault',
+        required: true,
+        mono: true,
+        help: 'Raw integer (USDC * 1e6). 0 closes the vault.',
+      },
+      {
+        name: '_nonce',
+        label: 'Nonce',
+        eip712Type: 'uint64',
+        placeholder: 'Timestamp in ms',
+        required: true,
+        mono: true,
+      },
+    ],
+    buildAction: (fields) => ({
+      type: 'vaultDistribute',
+      vaultAddress: fields.vaultAddress,
+      usd: parseInt(fields.usd),
+    }),
+  },
   subAccountTransfer: {
     type: 'subAccountTransfer',
     label: 'Sub-Account Transfer',
