@@ -31,33 +31,34 @@ export async function signMultisig(
 	outerSignerAddress: string,
 ): Promise<SignatureResult> {
 	const params = buildSignTypedDataParams(values, outerSignerAddress)
+	const actionDef = getActionDef(values.actionType)
 
 	// Normalize BigInts before serialization
 	const domain = normalizeBigInts(params.domain) as typeof params.domain
 	const message = normalizeBigInts(params.message) as Record<string, unknown>
 
-	// MetaMask enforces that the wallet's current chainId matches the domain's chainId
-	// before signing eth_signTypedData_v4. Switch to Arbitrum Sepolia (0x66eee = 421614)
-	// which is the chainId Hyperliquid uses in its EIP-712 domain as a protocol constant.
-	try {
-		await provider.request({
-			method: 'wallet_switchEthereumChain',
-			params: [{ chainId: '0x66eee' }],
-		})
-	} catch (switchErr: unknown) {
-		if ((switchErr as { code?: number }).code === 4902) {
+	if (actionDef.signingMode === 'user-signed') {
+		// User-signed Hyperliquid actions use the 0x66eee EIP-712 domain.
+		try {
 			await provider.request({
-				method: 'wallet_addEthereumChain',
-				params: [{
-					chainId: '0x66eee',
-					chainName: 'Arbitrum Sepolia',
-					nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-					rpcUrls: ['https://sepolia-rollup.arbitrum.io/rpc'],
-					blockExplorerUrls: ['https://sepolia.arbiscan.io'],
-				}],
+				method: 'wallet_switchEthereumChain',
+				params: [{ chainId: '0x66eee' }],
 			})
-		} else {
-			throw new Error('Please switch your wallet to Arbitrum Sepolia (chainId 421614) to sign.')
+		} catch (switchErr: unknown) {
+			if ((switchErr as { code?: number }).code === 4902) {
+				await provider.request({
+					method: 'wallet_addEthereumChain',
+					params: [{
+						chainId: '0x66eee',
+						chainName: 'Arbitrum Sepolia',
+						nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+						rpcUrls: ['https://sepolia-rollup.arbitrum.io/rpc'],
+						blockExplorerUrls: ['https://sepolia.arbiscan.io'],
+					}],
+				})
+			} else {
+				throw new Error('Please switch your wallet to Arbitrum Sepolia (chainId 421614) to sign.')
+			}
 		}
 	}
 
@@ -68,8 +69,6 @@ export async function signMultisig(
 	})) as `0x${string}`
 
 	const { r, s, v } = parseSignature(rawSig)
-
-	const actionDef = getActionDef(values.actionType)
 
 	return {
 		signer: walletAddress,

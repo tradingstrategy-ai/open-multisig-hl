@@ -171,8 +171,9 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
     label: 'Create Vault',
     description:
       'Create a new Hyperliquid vault. The signing multisig becomes the vault leader. Minimum 100 USDC initial deposit.',
-    signingMode: 'l1',
-    nonceField: '_nonce',
+    signingMode: 'user-signed',
+    primaryType: 'HyperliquidTransaction:CreateVault',
+    nonceField: 'nonce',
     fields: [
       {
         name: 'name',
@@ -193,14 +194,14 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
       {
         name: 'initialUsd',
         label: 'Initial Deposit (raw integer)',
-        eip712Type: 'int',
+        eip712Type: 'uint64',
         placeholder: 'e.g. 100000000 for 100 USDC',
         required: true,
         mono: true,
         help: 'Raw integer (USDC * 1e6). Minimum 100000000 (100 USDC).',
       },
       {
-        name: '_nonce',
+        name: 'nonce',
         label: 'Nonce',
         eip712Type: 'uint64',
         placeholder: 'Timestamp in ms',
@@ -208,18 +209,6 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
         mono: true,
       },
     ],
-    // createVault is the one L1 action whose canonical wire shape carries an
-    // inner `nonce` field equal to the envelope nonce. The msgpack hash
-    // includes the action dict (with inner nonce) AND appends the envelope
-    // nonce bytes separately; both must be the same value. See nktkas/hyperliquid
-    // src/api/exchange/_methods/createVault.ts for the reference implementation.
-    buildAction: (fields) => ({
-      type: 'createVault',
-      name: fields.name,
-      description: fields.description,
-      initialUsd: parseInt(fields.initialUsd),
-      nonce: parseInt(fields._nonce),
-    }),
   },
   vaultModify: {
     type: 'vaultModify',

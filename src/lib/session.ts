@@ -44,11 +44,16 @@ export function createSession(values: FormValues, createdBy: string): Session {
 
 // Convert a session back to form values (for the signer page)
 export function sessionToFormValues(session: Session): FormValues {
+  const fields = { ...session.fields };
+  if (session.actionType === 'createVault' && fields._nonce && !fields.nonce) {
+    fields.nonce = fields._nonce;
+    delete fields._nonce;
+  }
   return {
     actionType: session.actionType,
     multisigAddress: session.multisigAddress,
     network: session.network,
     vaultAddress: session.vaultAddress,
-    fields: { ...session.fields },
+    fields,
   };
 }

@@ -44,6 +44,25 @@
 		wallet.connected && hasSession && isFormValid(formErrors),
 	);
 
+	function formatSignError(err: unknown): string {
+		console.error('Signing failed:', err);
+
+		if (err instanceof Error) return err.message;
+		if (err && typeof err === 'object') {
+			const maybeError = err as { message?: unknown; code?: unknown };
+			const message = typeof maybeError.message === 'string' ? maybeError.message : null;
+			const code =
+				typeof maybeError.code === 'string' || typeof maybeError.code === 'number'
+					? String(maybeError.code)
+					: null;
+			if (message && code) return `${message} | ${code}`;
+			if (message) return message;
+			if (code) return code;
+			return JSON.stringify(err);
+		}
+		return String(err);
+	}
+
 	async function handleSign() {
 		const provider = wallet.provider;
 		const addr = wallet.address;
@@ -57,7 +76,7 @@
 			}
 			result = await signMultisig(provider, addr, values, session.createdBy);
 		} catch (err) {
-			signError = err instanceof Error ? err.message : 'Signing failed';
+			signError = formatSignError(err);
 		} finally {
 			signing = false;
 		}
