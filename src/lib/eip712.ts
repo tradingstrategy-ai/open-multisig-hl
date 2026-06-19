@@ -209,6 +209,13 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
         mono: true,
       },
     ],
+    buildAction: (fields) => ({
+      type: 'createVault',
+      name: fields.name,
+      description: fields.description,
+      initialUsd: parseInt(fields.initialUsd),
+      nonce: parseInt(fields.nonce),
+    }),
   },
   vaultModify: {
     type: 'vaultModify',
