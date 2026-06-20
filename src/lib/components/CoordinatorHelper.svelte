@@ -72,10 +72,19 @@
 		// Check consistency across all signatures
 		const ref = sigs[0].payload;
 		const warnings: string[] = [];
+		if (!ref.outerSigner) {
+			parseError = 'Signature #1 is missing payload.outerSigner. Ask signers to re-sign with the latest app version.';
+			return;
+		}
 		for (let i = 1; i < sigs.length; i++) {
 			const p = sigs[i].payload;
+			if (!p.outerSigner) {
+				parseError = `Signature #${i + 1} is missing payload.outerSigner. Ask signers to re-sign with the latest app version.`;
+				return;
+			}
 			if (p.type !== ref.type) warnings.push(`Sig #${i + 1}: action type "${p.type}" differs from #1 "${ref.type}"`);
 			if (p.multisigAddress !== ref.multisigAddress) warnings.push(`Sig #${i + 1}: multisig address differs`);
+			if (p.outerSigner.toLowerCase() !== ref.outerSigner.toLowerCase()) warnings.push(`Sig #${i + 1}: outer signer differs`);
 			if (p.network !== ref.network) warnings.push(`Sig #${i + 1}: network "${p.network}" differs from #1 "${ref.network}"`);
 			// Check fields
 			for (const [key, val] of Object.entries(ref.fields)) {
@@ -151,6 +160,15 @@
 		if (!parsed || parsed.length === 0) return;
 		if (!wallet.provider || !wallet.address) {
 			executeError = 'Connect your wallet first.';
+			return;
+		}
+		const committedOuterSigner = parsed[0]?.payload.outerSigner;
+		if (!committedOuterSigner) {
+			executeError = 'Signatures are missing payload.outerSigner. Ask signers to re-sign with the latest app version.';
+			return;
+		}
+		if (wallet.address.toLowerCase() !== committedOuterSigner.toLowerCase()) {
+			executeError = `Connect the outer signer wallet committed by the signatures: ${committedOuterSigner}. Current wallet: ${wallet.address}.`;
 			return;
 		}
 		executing = true;

@@ -77,6 +77,7 @@ export async function signMultisig(
 			type: values.actionType,
 			signingMode: actionDef.signingMode,
 			multisigAddress: values.multisigAddress,
+			outerSigner: outerSignerAddress,
 			network: values.network,
 			vaultAddress: values.vaultAddress,
 			fields: { ...values.fields },
