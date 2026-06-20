@@ -77,6 +77,7 @@ export interface SignatureResult {
     type: ActionType
     signingMode: SigningMode
     multisigAddress: string
+    outerSigner: string
     network: Network
     vaultAddress: string
     fields: Record<string, string | number | boolean>
