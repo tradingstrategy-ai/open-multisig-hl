@@ -135,6 +135,14 @@ Reusing or replaying a nonce lower than the last accepted one returns `"Invalid 
 
 Rabby (and MetaMask internally via `@metamask/eth-sig-util`) computes a different domain separator when `EIP712Domain` is omitted from the `types` object. Always include it explicitly in both inner and outer `eth_signTypedData_v4` calls.
 
+**createVault is L1, not user-signed**
+
+`createVault` must stay in the Hyperliquid L1 `Exchange` / `Agent` signing family. The nktkas SDK marks it as `Signing: L1 Action` and calls `executeL1Action`. A user-signed `HyperliquidTransaction:CreateVault` experiment was tested: browser wallets signed it and local recovery matched, but Hyperliquid rejected the final submit with `"Invalid multi-sig inner signer"` because the signatures covered the wrong digest. See `docs/hyperliquid-signing.md` before changing any action's `signingMode`.
+
+**Do not add fake chain 1337 to wallets**
+
+The L1 signing domain uses EIP-712 `chainId: 1337` as part of Hyperliquid's exchange-action signing scheme. This is not an RPC chain this app should add to Rabby or MetaMask. Rabby was tested against the SDK-correct `Exchange` / `Agent` payload and rejected it with `"chainId should be same as current chainId"`. Do not repeat fake-network switching. For wallets that cannot sign the direct L1 multisig payload, use an approved API wallet / agent path or another provider that signs the SDK-correct payload.
+
 ## Pull requests
 
 - Pull request description must have sections Why (the rational of change), Lessons learnt (memory for future agents) and Summary (what was changed). No test plan or verification section.

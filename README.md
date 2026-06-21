@@ -65,6 +65,14 @@ Open Hyperliquid Multisigner supports both sides of this flow:
 - `Withdraw`, `USD Send`, `Spot Send`, `USD Class Transfer`, `Token Delegate`, `Convert to MultiSig` — the fund-moving actions that always require the full multisig quorum
 - L1 actions (`Place Order`, `Cancel Order`, `Vault Transfer`, `Sub-Account Transfer`, etc.) — signable either by the multisig quorum or, once delegation is set up, by the approved agent directly
 
+`Create Vault` is also an L1 action in the Hyperliquid protocol. It must use
+the same `Exchange` / `Agent` signing family as orders and vault transfers, not
+the user-signed `HyperliquidTransaction:*` family used by `Approve Agent`.
+Browser wallets may still sign an invented user-signed `Create Vault` payload,
+but Hyperliquid rejects those signatures as `Invalid multi-sig inner signer`.
+See [docs/hyperliquid-signing.md](docs/hyperliquid-signing.md) before changing
+any action's signing mode.
+
 For the canonical protocol reference, see the Hyperliquid documentation on [nonces and API wallets](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/nonces-and-api-wallets).
 
 # How to create Hyperliquid native multisignature wallet

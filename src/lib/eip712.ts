@@ -171,8 +171,10 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
     label: 'Create Vault',
     description:
       'Create a new Hyperliquid vault. The signing multisig becomes the vault leader. Minimum 100 USDC initial deposit.',
-    signingMode: 'user-signed',
-    primaryType: 'HyperliquidTransaction:CreateVault',
+    // Hyperliquid SDK marks createVault as "Signing: L1 Action".
+    // Do not move this to user-signed: browser wallets can sign that invented schema,
+    // but Hyperliquid rejects the submit with "Invalid multi-sig inner signer".
+    signingMode: 'l1',
     nonceField: 'nonce',
     fields: [
       {
