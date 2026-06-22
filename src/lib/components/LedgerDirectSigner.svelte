@@ -50,6 +50,18 @@
 			expectedSigner.trim().toLowerCase() !== derivedAddress.toLowerCase(),
 		),
 	);
+	const canSignWithLedger = $derived(
+		Boolean(
+			ledgerSupported &&
+				l1Context &&
+				expectedSigner.trim() &&
+				derivedAddress &&
+				!expectedSignerMismatch &&
+				!signing &&
+				!deriving &&
+				!scanning,
+		),
+	);
 
 	$effect(() => {
 		if (!expectedSigner.trim() && expectedSignerAddress) {
@@ -133,6 +145,18 @@
 			error = 'The L1 signing context could not be built. Check the payload fields.';
 			return;
 		}
+		if (!expectedSigner.trim()) {
+			error = 'Enter the expected multisig signer address before signing.';
+			return;
+		}
+		if (!derivedAddress) {
+			error = 'Verify the Ledger address or find the expected signer path before signing.';
+			return;
+		}
+		if (expectedSignerMismatch) {
+			error = 'The derived Ledger address does not match the expected signer.';
+			return;
+		}
 
 		signing = true;
 		error = null;
@@ -214,7 +238,7 @@
 				<Input bind:value={derivationPath} class="font-mono" />
 			</label>
 			<label class="space-y-1 text-xs">
-				<span class="text-muted-foreground">Expected Signer (optional)</span>
+				<span class="text-muted-foreground">Expected Signer</span>
 				<Input bind:value={expectedSigner} placeholder="0x..." class="font-mono" />
 				{#if expectedSignerAddress}
 					<div class="text-muted-foreground text-[0.65rem]">
@@ -235,6 +259,14 @@
 			<Alert variant="destructive">
 				<AlertDescription>
 					The derived Ledger address does not match the expected signer.
+				</AlertDescription>
+			</Alert>
+		{/if}
+		{#if !expectedSigner.trim()}
+			<Alert variant="destructive">
+				<AlertDescription>
+					Enter the authorized multisig signer address, then verify or find its Ledger
+					path before signing.
 				</AlertDescription>
 			</Alert>
 		{/if}
@@ -260,7 +292,7 @@
 				variant="default"
 				size="sm"
 				onclick={signWithLedger}
-				disabled={!ledgerSupported || signing || deriving || scanning || !l1Context || expectedSignerMismatch}
+				disabled={!canSignWithLedger}
 			>
 				{signing ? 'Signing...' : 'Sign L1 Payload'}
 			</Button>
