@@ -5,6 +5,7 @@
 	import ConnectWallet from '$lib/components/ConnectWallet.svelte';
 	import PayloadForm from '$lib/components/PayloadForm.svelte';
 	import EIP712Preview from '$lib/components/EIP712Preview.svelte';
+	import LedgerDirectSigner from '$lib/components/LedgerDirectSigner.svelte';
 	import SignButton from '$lib/components/SignButton.svelte';
 	import SignatureOutput from '$lib/components/SignatureOutput.svelte';
 	import { Card, CardHeader, CardTitle, CardContent } from '$lib/components/ui/card/index.js';
@@ -34,6 +35,7 @@
 	let signing = $state(false);
 
 	let actionDef = $derived(hasSession ? getActionDef(values.actionType) : null);
+	let isL1Action = $derived(actionDef?.signingMode === 'l1');
 	let formErrors = $derived(
 		hasSession && actionDef ? validateForm(values, actionDef) : {}
 	);
@@ -41,7 +43,7 @@
 	// protocol constant because Hyperliquid was built on the Arbitrum stack.
 	let requiredChainId = HYPERCORE_SIGNING_CHAIN_ID;
 	let canSign = $derived(
-		wallet.connected && hasSession && isFormValid(formErrors),
+		!isL1Action && wallet.connected && hasSession && isFormValid(formErrors),
 	);
 
 	function formatSignError(err: unknown): string {
@@ -106,12 +108,19 @@
 			<NetworkSwitch network={values.network} onchange={() => {}} disabled />
 		</div>
 
-		<WrongChainAlert {requiredChainId} />
+		{#if !isL1Action}
+			<WrongChainAlert {requiredChainId} />
+		{/if}
 
 		<Alert class="border-blue-800 bg-blue-950/50">
 			<AlertDescription class="text-blue-200">
-				This payload is locked by the coordinator. Connect your wallet and sign
-				below.
+				{#if isL1Action}
+					This payload is locked by the coordinator. For L1 actions, sign with
+					Ledger Direct below and send the resulting JSON back to the coordinator.
+				{:else}
+					This payload is locked by the coordinator. Connect your wallet and sign
+					below.
+				{/if}
 			</AlertDescription>
 		</Alert>
 
@@ -119,10 +128,18 @@
 			<div class="min-w-0 space-y-4">
 				<Card>
 					<CardHeader>
-						<CardTitle class="text-sm">1. Connect Wallet</CardTitle>
+						<CardTitle class="text-sm">
+							{isL1Action ? '1. Match Signer Address' : '1. Connect Wallet'}
+						</CardTitle>
 					</CardHeader>
-					<CardContent>
+					<CardContent class="space-y-2">
 						<ConnectWallet />
+						{#if isL1Action}
+							<p class="text-muted-foreground text-xs">
+								The connected wallet is only used as the expected signer address.
+								The L1 signature is produced by Ledger Direct below.
+							</p>
+						{/if}
 					</CardContent>
 				</Card>
 				<Card>
@@ -131,24 +148,34 @@
 					</CardHeader>
 					<CardContent class="space-y-4">
 						<PayloadForm bind:values bind:errors locked />
-						<SignButton disabled={!canSign} {signing} onclick={handleSign} />
-						{#if signError}
-							<div
-								class="rounded-md border border-destructive px-4 py-3 text-sm text-destructive"
-							>
-								{signError}
-							</div>
-						{/if}
-						{#if result}
-							<SignatureOutput {result} />
+						{#if isL1Action && session?.createdBy}
+							<LedgerDirectSigner
+								{values}
+								outerSigner={session.createdBy}
+								expectedSignerAddress={wallet.address ?? ''}
+							/>
+						{:else}
+							<SignButton disabled={!canSign} {signing} onclick={handleSign} />
+							{#if signError}
+								<div
+									class="rounded-md border border-destructive px-4 py-3 text-sm text-destructive"
+								>
+									{signError}
+								</div>
+							{/if}
+							{#if result}
+								<SignatureOutput {result} />
+							{/if}
 						{/if}
 					</CardContent>
 				</Card>
-				<BalanceBox
-					multisigAddress={values.multisigAddress}
-					signerAddress={wallet.address ?? ''}
-					network={values.network}
-				/>
+				{#if !isL1Action}
+					<BalanceBox
+						multisigAddress={values.multisigAddress}
+						signerAddress={wallet.address ?? ''}
+						network={values.network}
+					/>
+				{/if}
 			</div>
 			<Card>
 				<CardHeader>

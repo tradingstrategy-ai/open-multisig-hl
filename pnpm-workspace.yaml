@@ -18,18 +18,18 @@ ignoredBuiltDependencies:
   - "@datadog/native-iast-taint-tracking"
   - "@datadog/native-metrics"
   - "@datadog/pprof"
+  - "@reown/appkit"
+  - bufferutil
+  - keccak
+  - utf-8-validate
 
 onlyBuiltDependencies:
   - "@datadog/native-appsec"
-  - "@reown/appkit"
   - "@sentry/cli"
-  - bufferutil
   - dd-trace
   - esbuild
-  - keccak
   - protobufjs
   - sharp
-  - utf-8-validate
 
 overrides:
   "@reown/appkit-wallet>zod": ^4.0.5
@@ -38,3 +38,9 @@ overrides:
   svelte-keyed>svelte: ^5.37.1
   svelte-render>svelte: ^5.37.1
   svelte-subscribe>svelte: ^5.37.1
+
+allowBuilds:
+  '@reown/appkit': false
+  bufferutil: false
+  keccak: false
+  utf-8-validate: false

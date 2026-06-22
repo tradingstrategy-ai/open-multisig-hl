@@ -68,6 +68,10 @@ export interface FormValues {
 
 export interface SignatureResult {
   signer: string
+  connectionId?: `0x${string}`
+  signerPath?: string
+  signingTransport?: 'browser-wallet' | 'ledger-eth'
+  signingMethod?: 'typed-data' | 'hashed-typed-data'
   signature: {
     r: `0x${string}`
     s: `0x${string}`
