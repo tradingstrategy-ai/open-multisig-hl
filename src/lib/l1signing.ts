@@ -98,21 +98,49 @@ export function buildL1SignTypedDataParams(params: {
   vaultAddress: string | null
 }) {
   // SDK: envelope = [payload_multi_sig_user.lower(), outer_signer.lower(), action]
+  const context = buildL1SigningContext(params)
+
+  return {
+    domain: L1_DOMAIN,
+    types: L1_TYPES,
+    primaryType: 'Agent' as const,
+    message: context.phantomAgent,
+  }
+}
+
+export function buildL1SigningContext(params: {
+  action: Record<string, unknown>
+  multisigAddress: string
+  outerSigner: string
+  network: Network
+  nonce: number
+  vaultAddress: string | null
+}): {
+  envelope: unknown[]
+  connectionId: `0x${string}`
+  phantomAgent: { source: string; connectionId: `0x${string}` }
+  typedData: ReturnType<typeof buildL1SignTypedDataParams>
+} {
   const envelope = [
     params.multisigAddress.toLowerCase(),
     params.outerSigner.toLowerCase(),
     params.action,
   ]
 
-  // Hash the envelope
-  const connectionId = actionHash(envelope, params.vaultAddress, params.nonce)
-  const phantomAgent = constructPhantomAgent(connectionId, params.network === 'Mainnet')
-
-  return {
+  const connectionIdBytes = actionHash(envelope, params.vaultAddress, params.nonce)
+  const phantomAgent = constructPhantomAgent(connectionIdBytes, params.network === 'Mainnet')
+  const typedData = {
     domain: L1_DOMAIN,
     types: L1_TYPES,
     primaryType: 'Agent' as const,
     message: phantomAgent,
+  }
+
+  return {
+    envelope,
+    connectionId: phantomAgent.connectionId,
+    phantomAgent,
+    typedData,
   }
 }
 

@@ -6,6 +6,7 @@
 	import type { SignatureResult, CoordinatorBundle } from '$lib/types.js';
 	import { getActionDef } from '$lib/eip712.js';
 	import { executeBundle } from '$lib/execute.js';
+	import { buildL1FormSigningContext, formValuesFromSignaturePayload } from '$lib/l1context.js';
 	import { getWallet } from '$lib/wallet.svelte.js';
 
 	const wallet = getWallet();
@@ -18,6 +19,16 @@
 	let executing = $state(false);
 	let executeResult = $state<{ success: boolean; response: unknown; requestBody: unknown } | null>(null);
 	let executeError = $state<string | null>(null);
+	let copiedPreview = $state(false);
+
+	const unsignedRequestPreview = $derived.by(() => {
+		if (!parsed || parsed.length === 0) return null;
+		try {
+			return buildUnsignedRequestBody();
+		} catch {
+			return null;
+		}
+	});
 
 	function toggle() {
 		expanded = !expanded;
@@ -94,6 +105,31 @@
 			}
 		}
 
+		if (ref.signingMode === 'l1') {
+			const connectionIds = sigs
+				.map((sig) => sig.connectionId)
+				.filter((connectionId): connectionId is `0x${string}` => Boolean(connectionId));
+			const distinctConnectionIds = new Set(connectionIds.map((connectionId) => connectionId.toLowerCase()));
+			if (distinctConnectionIds.size > 1) {
+				parseError = 'L1 signatures have different connectionId values. They were not signed for the same action/nonce.';
+				return;
+			}
+
+			const expectedContext = buildL1FormSigningContext(
+				formValuesFromSignaturePayload(ref),
+				ref.outerSigner,
+			);
+			for (let i = 0; i < sigs.length; i++) {
+				const signedConnectionId = sigs[i].connectionId;
+				if (!signedConnectionId) {
+					warnings.push(`Sig #${i + 1}: missing connectionId; ask signer to re-sign with the Ledger Direct build if validation is needed.`);
+				} else if (signedConnectionId.toLowerCase() !== expectedContext.connectionId.toLowerCase()) {
+					parseError = `Signature #${i + 1} was signed for connectionId ${signedConnectionId}, expected ${expectedContext.connectionId}.`;
+					return;
+				}
+			}
+		}
+
 		mismatchWarnings = warnings;
 		parsed = sigs;
 	}
@@ -141,6 +177,45 @@
 			network: ref.network,
 			nonce: parseInt(ref.fields[actionDef.nonceField] as string ?? '0', 10),
 		};
+	}
+
+	function trimSignature(sig: { r: string; s: string; v: number }) {
+		const trimHex = (hex: string) => {
+			const stripped = hex.slice(2).replace(/^0+/, '');
+			return '0x' + (stripped || '0');
+		};
+		return { r: trimHex(sig.r), s: trimHex(sig.s), v: sig.v };
+	}
+
+	function buildUnsignedRequestBody() {
+		if (!parsed || parsed.length === 0) throw new Error('No signatures parsed');
+		const bundle = buildBundle();
+		const outerSigner = parsed[0].payload.outerSigner;
+		const multiSigAction = {
+			type: 'multiSig',
+			signatureChainId: '0x66eee',
+			signatures: bundle.signatures.map(trimSignature),
+			payload: {
+				multiSigUser: bundle.multisig_user.toLowerCase(),
+				outerSigner: outerSigner.toLowerCase(),
+				action: bundle.inner_action,
+			},
+		};
+
+		return {
+			action: multiSigAction,
+			nonce: bundle.nonce,
+			signature: '<outer signer signature is added during Execute>',
+			vaultAddress: parsed[0].payload.vaultAddress || null,
+			expiresAfter: null,
+		};
+	}
+
+	async function copyPreview() {
+		if (!unsignedRequestPreview) return;
+		await navigator.clipboard.writeText(JSON.stringify(unsignedRequestPreview, null, 2));
+		copiedPreview = true;
+		setTimeout(() => { copiedPreview = false; }, 2000);
 	}
 
 	function exportBundle() {
@@ -246,6 +321,9 @@
 						<Button variant="outline" size="sm" onclick={exportBundle}>
 							Export Bundle
 						</Button>
+						<Button variant="outline" size="sm" onclick={copyPreview} disabled={!unsignedRequestPreview}>
+							{copiedPreview ? 'Copied!' : 'Copy Submit Preview'}
+						</Button>
 						<Button
 							variant="default"
 							size="sm"
@@ -256,6 +334,15 @@
 						</Button>
 					</div>
 				</div>
+
+				{#if unsignedRequestPreview}
+					<div class="space-y-2">
+						<div class="text-muted-foreground text-xs">
+							Final request preview before outer signer signature
+						</div>
+						<pre class="bg-muted max-h-72 overflow-auto rounded-md p-3 font-mono text-[0.6rem]">{JSON.stringify(unsignedRequestPreview, null, 2)}</pre>
+					</div>
+				{/if}
 			{/if}
 
 			{#if executeError}
