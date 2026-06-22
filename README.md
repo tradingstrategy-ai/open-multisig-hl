@@ -70,6 +70,8 @@ the same `Exchange` / `Agent` signing family as orders and vault transfers, not
 the user-signed `HyperliquidTransaction:*` family used by `Approve Agent`.
 Browser wallets may still sign an invented user-signed `Create Vault` payload,
 but Hyperliquid rejects those signatures as `Invalid multi-sig inner signer`.
+Vault deposits/withdrawals (`Vault Transfer`) and sub-account transfers are in
+that same L1 family.
 See [docs/hyperliquid-signing.md](docs/hyperliquid-signing.md) before changing
 any action's signing mode.
 

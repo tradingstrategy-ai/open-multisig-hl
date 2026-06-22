@@ -21,6 +21,23 @@ Hyperliquid has two distinct signing families:
 `L1` here means Hyperliquid's exchange action signing scheme, not an Ethereum
 L1 RPC transaction. Do not add a fake chain 1337 network to a browser wallet.
 
+## Vault and sub-account operations
+
+Keep these actions in the L1 signing family:
+
+- `vaultTransfer`: deposit USDC into a vault or withdraw USDC from a vault.
+- `vaultModify`: change vault settings.
+- `vaultDistribute`: distribute vault funds back to depositors.
+- `subAccountTransfer`: move USDC to or from a sub-account.
+- `subAccountSpotTransfer`: move spot tokens to or from a sub-account.
+- `createSubAccount`: create a new named sub-account.
+
+These actions are operational Hyperliquid exchange actions. They are not the
+same user-signed family as `usdSend`, `spotSend`, `withdraw`, or
+`approveAgent`. Browser-wallet success against a locally invented
+`HyperliquidTransaction:*` schema is not evidence that Hyperliquid will accept
+the submit.
+
 ## createVault decision
 
 `createVault` is an L1 action.

@@ -145,6 +145,9 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
   },
 
   // ==== L1 ACTIONS (phantom agent pattern) ====
+  // These are Hyperliquid exchange actions, not user-signed wallet-transfer
+  // actions. Keep vault funding/operations, sub-account operations, and orders
+  // in this section unless SDK source says the specific method is user-signed.
 
   vaultTransfer: {
     type: 'vaultTransfer',
