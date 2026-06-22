@@ -39,6 +39,7 @@
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@wagmi/connectors": "^5.11.2",
 		"@wagmi/core": "^2.22.1",
+		"buffer": "^6.0.3",
 		"viem": "^2.47.12"
 	}
 }

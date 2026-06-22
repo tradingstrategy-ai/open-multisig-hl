@@ -6,14 +6,7 @@
 	import SignatureOutput from '$lib/components/SignatureOutput.svelte';
 	import { getActionDef } from '$lib/eip712.js';
 	import { buildL1FormSigningContext } from '$lib/l1context.js';
-	import {
-		fetchLedgerEthAddress,
-		fetchLedgerEthAddresses,
-		isLedgerWebHidSupported,
-		signLedgerEthTypedData,
-		type LedgerTypedData,
-		type LedgerProgress,
-	} from '$lib/ledger.js';
+	import type { LedgerTypedData, LedgerProgress } from '$lib/ledger.js';
 	import type { FormValues, SignatureResult } from '$lib/types.js';
 
 	interface Props {
@@ -35,7 +28,7 @@
 	let signing = $state(false);
 
 	const actionDef = $derived(getActionDef(values.actionType));
-	const ledgerSupported = $derived(isLedgerWebHidSupported());
+	const ledgerSupported = $derived(typeof navigator !== 'undefined' && 'hid' in navigator);
 	const l1Context = $derived.by(() => {
 		try {
 			return buildL1FormSigningContext(values, outerSigner);
@@ -74,6 +67,14 @@
 		return err instanceof Error ? err.message : String(err);
 	}
 
+	async function loadLedger() {
+		const { Buffer } = await import('buffer');
+		if (!('Buffer' in globalThis)) {
+			(globalThis as typeof globalThis & { Buffer: typeof Buffer }).Buffer = Buffer;
+		}
+		return import('$lib/ledger.js');
+	}
+
 	async function deriveAddress() {
 		deriving = true;
 		error = null;
@@ -81,6 +82,7 @@
 		progress = null;
 		derivedAddress = null;
 		try {
+			const { fetchLedgerEthAddress } = await loadLedger();
 			derivedAddress = await fetchLedgerEthAddress(derivationPath, (nextProgress) => {
 				progress = nextProgress;
 			});
@@ -115,6 +117,7 @@
 		progress = null;
 		derivedAddress = null;
 		try {
+			const { fetchLedgerEthAddresses } = await loadLedger();
 			const derived = await fetchLedgerEthAddresses(commonLedgerPaths(), (nextProgress) => {
 				progress = nextProgress;
 			});
@@ -163,6 +166,7 @@
 		result = null;
 		progress = null;
 		try {
+			const { signLedgerEthTypedData } = await loadLedger();
 			const signed = await signLedgerEthTypedData(
 				derivationPath,
 				JSON.parse(JSON.stringify(l1Context.typedData)) as LedgerTypedData,
