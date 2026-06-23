@@ -1,5 +1,13 @@
 import { resolve } from '$app/paths';
-import type { Session, FormValues } from './types';
+import type { Session, FormValues, Network } from './types';
+
+const NETWORK_ALIASES: Record<string, Network> = {
+	mainnet: 'Mainnet',
+	main: 'Mainnet',
+	mainet: 'Mainnet',
+	testnet: 'Testnet',
+	test: 'Testnet',
+};
 
 // Encode session to URL-safe base64 for sharing
 export function encodeSession(session: Session): string {
@@ -13,7 +21,11 @@ export function decodeSession(encoded: string): Session | null {
   try {
     const bytes = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0));
     const json = new TextDecoder().decode(bytes);
-    return JSON.parse(json) as Session;
+    const session = JSON.parse(json) as Session;
+    return {
+      ...session,
+      network: parseNetwork(session.network),
+    };
   } catch {
     return null;
   }
@@ -52,8 +64,20 @@ export function sessionToFormValues(session: Session): FormValues {
   return {
     actionType: session.actionType,
     multisigAddress: session.multisigAddress,
-    network: session.network,
+    network: parseNetwork(session.network),
     vaultAddress: session.vaultAddress,
     fields,
   };
+}
+
+function parseNetwork(value: unknown): Network {
+  if (typeof value !== 'string') {
+    throw new Error(`Invalid network in shared session: ${String(value)}`);
+  }
+
+  const network = NETWORK_ALIASES[value.trim().toLowerCase()];
+  if (!network) {
+    throw new Error(`Invalid network in shared session: ${value}`);
+  }
+  return network;
 }

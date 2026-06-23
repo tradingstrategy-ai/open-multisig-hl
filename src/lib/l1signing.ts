@@ -121,6 +121,7 @@ export function buildL1SigningContext(params: {
   phantomAgent: { source: string; connectionId: `0x${string}` }
   typedData: ReturnType<typeof buildL1SignTypedDataParams>
 } {
+  const isMainnet = networkToL1Source(params.network) === 'a'
   const envelope = [
     params.multisigAddress.toLowerCase(),
     params.outerSigner.toLowerCase(),
@@ -128,7 +129,7 @@ export function buildL1SigningContext(params: {
   ]
 
   const connectionIdBytes = actionHash(envelope, params.vaultAddress, params.nonce)
-  const phantomAgent = constructPhantomAgent(connectionIdBytes, params.network === 'Mainnet')
+  const phantomAgent = constructPhantomAgent(connectionIdBytes, isMainnet)
   const typedData = {
     domain: L1_DOMAIN,
     types: L1_TYPES,
@@ -142,6 +143,12 @@ export function buildL1SigningContext(params: {
     phantomAgent,
     typedData,
   }
+}
+
+function networkToL1Source(network: Network): 'a' | 'b' {
+  if (network === 'Mainnet') return 'a'
+  if (network === 'Testnet') return 'b'
+  throw new Error(`Invalid network for L1 signing: ${String(network)}`)
 }
 
 // ============================================================================
