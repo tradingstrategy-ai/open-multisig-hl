@@ -39,6 +39,38 @@ function trimSignature(sig: Signature): Signature {
 	return { r: trimHex(sig.r), s: trimHex(sig.s), v: sig.v }
 }
 
+// Long-form → wire-enum map for `userSetAbstraction.abstraction`. The official
+// Hyperliquid Python SDK's `exchange.py` defines this exact map and applies it
+// only to the OUTER envelope's payload.action (`_multi_sig_payload_action`).
+// Inner signatures continue to sign the long-form value; the server
+// canonicalizes both sides before hashing the outer envelope.
+//
+// Without this canonicalization, our outer signer signs over the long form
+// ("disabled") while the server's hash uses the wire enum ("i"), producing
+// "Invalid multi-sig outer signer".
+//
+// Source: hyperliquid-dex/hyperliquid-python-sdk
+//   examples/multi_sig_user_set_abstraction.py — comment "Exchange.multi_sig
+//   canonicalizes this action to the wire enum value when it builds and signs
+//   the outer multi-sig payload."
+//   hyperliquid/exchange.py — `_multi_sig_payload_action` + USER_SET_ABSTRACTION_WIRE_VALUES.
+const USER_SET_ABSTRACTION_WIRE_VALUES: Record<string, string> = {
+	disabled: 'i',
+	unifiedAccount: 'u',
+	portfolioMargin: 'p',
+}
+
+export function canonicalizePayloadAction(
+	action: Record<string, unknown>,
+): Record<string, unknown> {
+	if (action.type !== 'userSetAbstraction') return action
+	const longForm = action.abstraction
+	if (typeof longForm !== 'string' || !(longForm in USER_SET_ABSTRACTION_WIRE_VALUES)) {
+		return action
+	}
+	return { ...action, abstraction: USER_SET_ABSTRACTION_WIRE_VALUES[longForm] }
+}
+
 /**
  * Compute action hash for the multiSig envelope.
  * Matches Python SDK: action_hash(action_without_tag, vault_address, nonce)
@@ -186,6 +218,11 @@ export async function executeBundle(
 	// the outer action hash, so we must hash the same trimmed form.
 	const trimmedSignatures = bundle.signatures.map(trimSignature)
 
+	// Apply outer-envelope canonicalization (currently userSetAbstraction only).
+	// Inner signatures already exist over the long-form value; only the
+	// payload.action that gets msgpacked for the outer hash needs the wire enum.
+	const payloadAction = canonicalizePayloadAction(bundle.inner_action)
+
 	const multiSigAction = {
 		type: 'multiSig',
 		signatureChainId: '0x66eee',
@@ -193,7 +230,7 @@ export async function executeBundle(
 		payload: {
 			multiSigUser: bundle.multisig_user.toLowerCase(),
 			outerSigner: outerSigner.toLowerCase(),
-			action: bundle.inner_action,
+			action: payloadAction,
 		},
 	}
 
