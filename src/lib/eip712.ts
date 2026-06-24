@@ -129,11 +129,7 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
   sendAsset: {
     type: 'sendAsset',
     label: 'Send Asset',
-    description:
-      'Generalized transfer between spot/perp DEXes, users, and sub-accounts. ' +
-      'Use empty string "" for the default USDC perp DEX, "spot" for spot. ' +
-      'On a UNIFIED account, this is how to move USDC from spot to perp ' +
-      '(usdClassTransfer is disabled in that mode).',
+    description: 'Generalized transfer between spot/perp DEXes, users, and sub-accounts.',
     signingMode: 'user-signed',
     primaryType: 'HyperliquidTransaction:SendAsset',
     nonceField: 'nonce',
@@ -142,30 +138,24 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
       // sourceDex / destinationDex are NOT required: the empty string "" is the
       // wire-level encoding of the default USDC perp DEX. Marking them required
       // would prevent the form from submitting the legitimate empty-string value.
-      { name: 'sourceDex', label: 'Source DEX', eip712Type: 'string', placeholder: '"spot" or "" (= default USDC perp)', help: 'Use "spot" for spot, or leave empty for the default USDC perp DEX.' },
-      { name: 'destinationDex', label: 'Destination DEX', eip712Type: 'string', placeholder: '"spot" or "" (= default USDC perp)', help: 'Use "spot" for spot, or leave empty for the default USDC perp DEX.' },
+      { name: 'sourceDex', label: 'Source DEX', eip712Type: 'string', placeholder: '"spot" or "" (= default USDC perp)', help: '"spot" for spot, empty string for the default USDC perp DEX, or a named perp DEX.' },
+      { name: 'destinationDex', label: 'Destination DEX', eip712Type: 'string', placeholder: '"spot" or "" (= default USDC perp)', help: '"spot" for spot, empty string for the default USDC perp DEX, or a named perp DEX.' },
       { name: 'token', label: 'Token', eip712Type: 'string', placeholder: 'USDC:0x6d1e7cde53ba9467b783cb7c530ce054', required: true, mono: true, help: 'Format "<name>:<tokenId>". USDC mainnet is "USDC:0x6d1e7cde53ba9467b783cb7c530ce054".' },
       { name: 'amount', label: 'Amount (human-readable)', eip712Type: 'string', placeholder: '100.0', required: true },
-      { name: 'fromSubAccount', label: 'From Sub-Account', eip712Type: 'string', placeholder: 'Leave empty if none' },
+      { name: 'fromSubAccount', label: 'From Sub-Account', eip712Type: 'string', placeholder: '"" = main account', help: 'Empty string means the main account; otherwise the sub-account address.' },
       { name: 'nonce', label: 'Nonce', eip712Type: 'uint64', placeholder: 'Timestamp in ms', required: true, mono: true },
     ],
   },
   userSetAbstraction: {
     type: 'userSetAbstraction',
     label: 'User Set Abstraction',
-    description:
-      'Switch the account between abstraction modes ("disabled" = standard, ' +
-      '"unifiedAccount", "portfolioMargin"). Used as a fallback for actions ' +
-      'that are gated on unified accounts (e.g. createVault, usdClassTransfer): ' +
-      'flip to "disabled", perform the action, flip back. Portfolio margin has ' +
-      'additional prerequisites (account-value/volume thresholds, no open ' +
-      'positions / open orders / TWAPs).',
+    description: 'Switch the account between abstraction modes.',
     signingMode: 'user-signed',
     primaryType: 'HyperliquidTransaction:UserSetAbstraction',
     nonceField: 'nonce',
     fields: [
       { name: 'user', label: 'User (account being set)', eip712Type: 'address', placeholder: '0x... (same as multisig for self-set)', required: true, mono: true, help: 'The address whose abstraction mode is being changed. For a multisig acting on itself, this is the multisig address.' },
-      { name: 'abstraction', label: 'Abstraction Mode', eip712Type: 'string', placeholder: 'disabled | unifiedAccount | portfolioMargin', required: true, help: 'One of "disabled", "unifiedAccount", or "portfolioMargin". The wire format expects the long-form string here; the protocol normalizes it internally.' },
+      { name: 'abstraction', label: 'Abstraction Mode', eip712Type: 'string', placeholder: 'dexAbstraction | unifiedAccount | portfolioMargin | disabled', required: true, help: 'One of: "dexAbstraction", "unifiedAccount", "portfolioMargin", "disabled". Exact string (no normalization). Portfolio margin has additional prerequisites (account-value/volume thresholds, no open positions/orders/TWAPs).' },
       { name: 'nonce', label: 'Nonce', eip712Type: 'uint64', placeholder: 'Timestamp in ms', required: true, mono: true },
     ],
   },
