@@ -17,6 +17,7 @@ export type ActionType =
   | 'tokenDelegate'
   | 'convertToMultiSigUser'
   | 'sendAsset'
+  | 'userSetAbstraction'
   // L1 actions (phantom agent pattern)
   | 'vaultTransfer'
   | 'createVault'
