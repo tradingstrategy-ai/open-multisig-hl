@@ -116,13 +116,27 @@ export const ACTION_REGISTRY: Record<ActionType, ActionDef> = {
   },
   convertToMultiSigUser: {
     type: 'convertToMultiSigUser',
-    label: 'Convert to MultiSig',
-    description: 'Convert a regular account to a multisig account',
+    label: 'Convert to MultiSig (or revert)',
+    description:
+      'Convert a regular account to a multisig account, update the multisig configuration, ' +
+      'or revert a multisig account back to a regular single-signature account.',
     signingMode: 'user-signed',
     primaryType: 'HyperliquidTransaction:ConvertToMultiSigUser',
     nonceField: 'nonce',
     fields: [
-      { name: 'signers', label: 'Signers (JSON)', eip712Type: 'string', placeholder: '{"threshold":2,"signers":["0x...","0x..."]}', required: true },
+      {
+        name: 'signers',
+        label: 'Signers (JSON-encoded string)',
+        eip712Type: 'string',
+        placeholder: '{"authorizedUsers":["0x...","0x..."],"threshold":2}  OR  null',
+        required: true,
+        help:
+          'Wire format is a JSON-encoded string. To convert to or update a multi-sig: ' +
+          '\'{"authorizedUsers":["0x...","0x..."],"threshold":2}\' (threshold must be 1-10). ' +
+          'To REVERT a multi-sig back to a regular single-signature account: the literal ' +
+          'four-character string "null" (no quotes around it in the field value — just ' +
+          'type null). Source: hyperliquid-dex/hyperliquid-python-sdk examples/multi_sig_convert_to_normal_user.py.',
+      },
       { name: 'nonce', label: 'Nonce', eip712Type: 'uint64', placeholder: 'Timestamp in ms', required: true, mono: true },
     ],
   },

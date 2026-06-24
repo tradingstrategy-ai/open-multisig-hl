@@ -5,7 +5,7 @@
 	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 	import type { SignatureResult, CoordinatorBundle } from '$lib/types.js';
 	import { getActionDef } from '$lib/eip712.js';
-	import { executeBundle } from '$lib/execute.js';
+	import { executeBundle, canonicalizePayloadAction } from '$lib/execute.js';
 	import { buildL1FormSigningContext, formValuesFromSignaturePayload } from '$lib/l1context.js';
 	import { getWallet } from '$lib/wallet.svelte.js';
 
@@ -191,6 +191,9 @@
 		if (!parsed || parsed.length === 0) throw new Error('No signatures parsed');
 		const bundle = buildBundle();
 		const outerSigner = parsed[0].payload.outerSigner;
+		// Apply the same outer-envelope canonicalization that execute.ts uses,
+		// so the preview JSON matches what gets signed and submitted.
+		const payloadAction = canonicalizePayloadAction(bundle.inner_action);
 		const multiSigAction = {
 			type: 'multiSig',
 			signatureChainId: '0x66eee',
@@ -198,7 +201,7 @@
 			payload: {
 				multiSigUser: bundle.multisig_user.toLowerCase(),
 				outerSigner: outerSigner.toLowerCase(),
-				action: bundle.inner_action,
+				action: payloadAction,
 			},
 		};
 
